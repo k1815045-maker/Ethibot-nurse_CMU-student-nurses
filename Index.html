@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>EthiBot Nurse — CMU Nursing Ethics</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --red:#A32D2D;--red-l:#FCEBEB;--red-m:#F09595;
+  --green:#27500A;--green-l:#EAF3DE;--green-m:#97C459;
+  --amber:#633806;--amber-l:#FAEEDA;--amber-m:#EF9F27;
+  --blue:#0C447C;--blue-l:#E6F1FB;--blue-m:#85B7EB;
+  --purple:#3C3489;--purple-l:#EEEDFE;--purple-m:#AFA9EC;
+  --bg:#FFFFFF;--bg2:#F7F7F5;--bg3:#F1EFE8;
+  --txt:#1A1A1A;--txt2:#555552;--txt3:#888780;
+  --bdr:rgba(0,0,0,0.12);--bdr2:rgba(0,0,0,0.2);
+}
+@media(prefers-color-scheme:dark){
+  :root{--bg:#1C1C1E;--bg2:#2C2C2E;--bg3:#3A3A3C;--txt:#F2F2F7;--txt2:#AEAEB2;--txt3:#636366;--bdr:rgba(255,255,255,0.12);--bdr2:rgba(255,255,255,0.2)}
+}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;background:var(--bg);color:var(--txt);font-size:16px;line-height:1.5}
+
+/* LAYOUT */
+.app{max-width:600px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding-bottom:calc(60px + env(safe-area-inset-bottom,8px))}
+.hdr{display:flex;align-items:center;gap:10px;padding:12px 16px 10px;border-bottom:0.5px solid var(--bdr);position:sticky;top:0;background:var(--bg);z-index:10}
+.hdr-logo{width:38px;height:38px;border-radius:10px;background:var(--red-l);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.hdr-title{font-size:16px;font-weight:600;color:var(--txt)}
+.hdr-sub{font-size:12px;color:var(--txt2)}
+.lang-sw{margin-left:auto;display:flex;border:0.5px solid var(--bdr2);border-radius:8px;overflow:hidden;flex-shrink:0}
+.lbtn{padding:5px 12px;font-size:14px;font-weight:500;border:none;cursor:pointer;background:var(--bg);color:var(--txt2);font-family:inherit}
+.lbtn.on{background:var(--red);color:#FCEBEB}
+.content{flex:1;padding:12px 16px;overflow-y:auto}
+
+/* BOTTOM NAV — always visible */
+.bot-nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:0.5px solid var(--bdr);display:flex;z-index:20;padding-bottom:env(safe-area-inset-bottom,0)}
+.bot-nav-inner{max-width:600px;margin:0 auto;display:flex;width:100%}
+.bnav{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;border:none;background:none;cursor:pointer;font-family:inherit;color:var(--txt3);font-size:10px;gap:2px;transition:color .15s}
+.bnav-ico{font-size:22px;line-height:1}
+.bnav.on{color:var(--red)}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:10px 16px 8px}
+.stat{background:var(--bg2);border-radius:8px;padding:8px 4px;text-align:center}
+.stat-n{font-size:18px;font-weight:600;line-height:1}
+.stat-l{font-size:10px;color:var(--txt2);margin-top:3px}
+.prog-row{display:flex;align-items:center;gap:10px;padding:0 16px 10px}
+.prog-bg{flex:1;background:var(--bg3);border-radius:999px;height:5px;overflow:hidden}
+.prog-fill{height:5px;border-radius:999px;background:var(--red);transition:width .5s}
+
+/* CARDS */
+.card{background:var(--bg);border:0.5px solid var(--bdr);border-radius:14px;overflow:hidden;margin-bottom:10px}
+.dc-hdr{background:var(--red);padding:12px 16px;display:flex;align-items:center;gap:10px}
+.timer-wrap{display:flex;flex-direction:column;align-items:center;padding:14px 16px 8px}
+.timer-ring{position:relative;width:80px;height:80px;margin-bottom:8px}
+.timer-svg{transform:rotate(-90deg)}
+.timer-track{fill:none;stroke:var(--bg3);stroke-width:6}
+.timer-fill{fill:none;stroke:var(--red);stroke-width:6;stroke-linecap:round;stroke-dasharray:220;stroke-dashoffset:0;transition:stroke-dashoffset .9s linear,stroke .3s}
+.timer-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:600;color:var(--txt)}
+.dc-sit{font-size:16px;color:var(--txt2);line-height:1.7;padding:4px 16px 10px;text-align:center}
+
+/* CHOICES */
+.choices{display:flex;flex-direction:column;gap:8px;padding:0 16px 16px}
+.choice{display:flex;align-items:flex-start;gap:12px;padding:13px 14px;border-radius:12px;border:1.5px solid var(--bdr);background:var(--bg);cursor:pointer;font-family:inherit;text-align:left;width:100%;transition:all .15s;min-height:52px}
+.choice:active{transform:scale(0.98)}
+.ckey{width:30px;height:30px;border-radius:8px;background:var(--bg2);border:0.5px solid var(--bdr);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0;color:var(--txt2)}
+.ctxt{font-size:16px;color:var(--txt);line-height:1.5;flex:1;padding-top:2px}
+.cico{font-size:16px;flex-shrink:0;opacity:0;padding-top:4px}
+.choice.correct{border-color:#3B6D11;background:var(--green-l)}.choice.correct .ckey{background:#3B6D11;color:#fff;border-color:#3B6D11}.choice.correct .cico{opacity:1}
+.choice.wrong{border-color:#E24B4A;background:var(--red-l)}.choice.wrong .ckey{background:#E24B4A;color:#fff;border-color:#E24B4A}.choice.wrong .cico{opacity:1}
+.choice.partial{border-color:#BA7517;background:var(--amber-l)}.choice.partial .ckey{background:#BA7517;color:#fff;border-color:#BA7517}.choice.partial .cico{opacity:1}
+.choice:disabled{cursor:default}
+
+/* STEPS */
+.steps{display:flex;border-bottom:0.5px solid var(--bdr)}
+.step{flex:1;padding:8px 4px;text-align:center;font-size:11px;font-weight:500;color:var(--txt3)}
+.step-dot{width:20px;height:20px;border-radius:50%;background:var(--bg2);border:0.5px solid var(--bdr);display:flex;align-items:center;justify-content:center;font-size:11px;margin:0 auto 3px}
+.step.done{color:var(--green)}.step.done .step-dot{background:var(--green-l);border-color:#3B6D11;color:var(--green)}
+.step.active{color:var(--red)}.step.active .step-dot{background:var(--red-l);border-color:var(--red);color:var(--red)}
+
+/* ANALYSIS */
+.analysis{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.result-banner{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px}
+.slabel{font-size:11px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.pchip{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;border:0.5px solid transparent}
+.pchip.ok{background:var(--green-l);border-color:var(--green-m)}.pchip.ok .pname{color:var(--green);font-size:14px;font-weight:600}.pchip.ok .pv{color:#3B6D11}
+.pchip.fail{background:var(--red-l);border-color:var(--red-m)}.pchip.fail .pname{color:var(--red);font-size:14px;font-weight:600}.pchip.fail .pv{color:var(--red)}
+.pchip.conflict{background:var(--amber-l);border-color:var(--amber-m)}.pchip.conflict .pname{color:var(--amber);font-size:14px;font-weight:600}.pchip.conflict .pv{color:#854F0B}
+.pv{font-size:11px;margin-top:1px}
+.cflict{background:var(--amber-l);border:0.5px solid var(--amber-m);border-radius:10px;padding:10px 12px;font-size:14px;color:var(--amber);line-height:1.6}
+.why-box{background:var(--bg2);border-radius:10px;padding:10px 12px;font-size:14px;color:var(--txt2);line-height:1.7}
+.law-box{background:var(--blue-l);border:0.5px solid var(--blue-m);border-radius:10px;padding:10px 12px}
+.law-row{font-size:14px;color:var(--blue);line-height:1.7;display:flex;gap:6px}
+.law-row::before{content:"§";flex-shrink:0;opacity:.5}
+.real-box{background:var(--purple-l);border:0.5px solid var(--purple-m);border-radius:10px;padding:10px 12px}
+.real-item{display:flex;align-items:flex-start;gap:8px;font-size:14px;color:var(--purple);line-height:1.6;margin-bottom:4px;cursor:pointer}
+.chk{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--purple-m);flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:10px;transition:all .15s}
+.chk.on{background:var(--purple);border-color:var(--purple);color:#fff}
+
+/* QUIZ */
+.quiz-wrap{padding:14px 16px}
+.quiz-q{font-size:16px;font-weight:500;color:var(--txt);margin-bottom:12px;line-height:1.5}
+.qopts{display:flex;flex-direction:column;gap:8px}
+.qopt{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;border:1.5px solid var(--bdr);background:var(--bg);cursor:pointer;font-family:inherit;font-size:16px;color:var(--txt);text-align:left;width:100%;transition:all .15s}
+.qopt:active{transform:scale(0.98)}
+.qopt.qok{border-color:#3B6D11;background:var(--green-l);color:var(--green)}
+.qopt.qfail{border-color:#E24B4A;background:var(--red-l);color:var(--red)}
+.quiz-fb{margin-top:10px;font-size:14px;color:var(--txt2);line-height:1.6;padding:10px 12px;border-radius:10px;background:var(--bg2)}
+
+/* NAV ROW */
+.nav-row{display:flex;gap:8px;padding:12px 16px;border-top:0.5px solid var(--bdr)}
+.nbtn{flex:1;padding:12px;font-size:16px;font-weight:500;border-radius:12px;border:0.5px solid var(--bdr);background:var(--bg2);color:var(--txt2);cursor:pointer;font-family:inherit;transition:all .15s}
+.nbtn:active{transform:scale(0.97)}
+.nbtn.primary{background:var(--red);color:#FCEBEB;border-color:var(--red)}
+.nbtn.skip{background:var(--bg2);color:var(--txt3);border-style:dashed;font-size:14px}
+
+/* EXPLORE */
+.cats{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.ctab{font-size:14px;padding:6px 14px;border-radius:999px;border:0.5px solid var(--bdr);background:var(--bg2);color:var(--txt2);cursor:pointer;font-family:inherit;transition:all .15s}
+.ctab.on{background:var(--red);color:#FCEBEB;border-color:var(--red)}
+.srch-box{display:flex;align-items:center;gap:8px;background:var(--bg2);border:0.5px solid var(--bdr);border-radius:12px;padding:10px 14px;margin-bottom:8px}
+.srch-inp{flex:1;border:none;background:transparent;font-size:16px;font-family:inherit;color:var(--txt);outline:none}
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+@media(min-width:480px){.mgrid{grid-template-columns:repeat(3,1fr)}}
+.mc{background:var(--bg2);border:0.5px solid var(--bdr);border-radius:12px;padding:12px;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;position:relative}
+.mc:active{transform:scale(0.97)}
+.mc-done{position:absolute;top:8px;right:8px;width:18px;height:18px;border-radius:50%;background:var(--green-l);border:1px solid var(--green-m);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--green)}
+.mc-num{font-size:11px;color:var(--txt3);margin-bottom:3px}
+.mc-ico{font-size:20px;margin-bottom:5px}
+.mc-ttl{font-size:14px;font-weight:500;color:var(--txt);line-height:1.4;flex:1}
+.mc-cat{font-size:10px;padding:2px 8px;border-radius:999px;margin-top:6px;display:inline-block}
+.sc-sit{font-size:16px;color:var(--txt2);line-height:1.7;padding:10px 14px;background:var(--bg2);border-radius:10px;border-left:3px solid var(--red)}
+
+/* HOME */
+.home-hero{background:var(--red);border-radius:16px;padding:20px;margin-bottom:12px;color:#FCEBEB}
+.home-hero-title{font-size:22px;font-weight:600;margin-bottom:4px}
+.home-hero-sub{font-size:14px;opacity:.8;margin-bottom:14px}
+.home-cta{background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.4);border-radius:10px;padding:11px 20px;font-size:16px;font-weight:600;color:#FCEBEB;cursor:pointer;font-family:inherit;width:100%;transition:all .15s}
+.home-cta:active{transform:scale(0.97)}
+.section-title{font-size:16px;font-weight:600;color:var(--txt);margin-bottom:10px}
+.cat-cards{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.cat-card{border-radius:12px;padding:12px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:10px;border:0.5px solid transparent}
+.cat-card:active{transform:scale(0.97)}
+.cat-ico{font-size:24px;flex-shrink:0}
+.cat-info-name{font-size:14px;font-weight:600}
+.cat-info-count{font-size:11px;margin-top:1px}
+.recent-list{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.recent-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg2);border-radius:10px;cursor:pointer;border:0.5px solid var(--bdr)}
+.recent-item:active{transform:scale(0.98)}
+.ri-ico{font-size:20px;flex-shrink:0}
+.ri-ttl{font-size:14px;font-weight:500;color:var(--txt);flex:1}
+.ri-cat{font-size:10px;padding:1px 7px;border-radius:999px}
+.ri-arr{font-size:16px;color:var(--txt3)}
+.tip-card{background:var(--blue-l);border:0.5px solid var(--blue-m);border-radius:12px;padding:12px 14px;margin-bottom:10px;font-size:14px;color:var(--blue);line-height:1.6}
+
+/* DASHBOARD */
+.kpi-g{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.kpi{background:var(--bg2);border-radius:12px;padding:12px 8px;text-align:center}
+.kpi-n{font-size:22px;font-weight:600}
+.kpi-l{font-size:10px;color:var(--txt2);margin-top:3px;line-height:1.3}
+.bar-chart{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.bar-row{display:flex;align-items:center;gap:8px}
+.bar-lbl{font-size:12px;color:var(--txt2);width:110px;flex-shrink:0;line-height:1.3}
+.bar-bg{flex:1;background:var(--bg3);border-radius:999px;height:8px;overflow:hidden}
+.bar-fill{height:8px;border-radius:999px;transition:width .8s}
+.bar-pct{font-size:12px;color:var(--txt2);width:34px;text-align:right;flex-shrink:0}
+.ins-card{border-radius:12px;padding:10px 12px;margin-bottom:8px;font-size:14px;line-height:1.65;display:flex;gap:8px}
+.badge-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.badge-card{border-radius:12px;padding:10px 12px;flex:1;min-width:80px;text-align:center}
+.safety{background:var(--green-l);border:0.5px solid var(--green-m);border-radius:10px;padding:8px 12px;font-size:14px;color:var(--green);margin-bottom:10px;display:flex;gap:6px}
+
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+.urgent .timer-fill{stroke:#E24B4A;animation:pulse .5s ease-in-out infinite}
+.urgent .timer-num{color:#E24B4A}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hdr">
+    <div class="hdr-logo">🏥</div>
+    <div><div class="hdr-title">EthiBot Nurse</div><div class="hdr-sub">CMU Nursing Ethics · 30 Scenarios</div></div>
+    <div class="lang-sw">
+      <button class="lbtn on" id="btn-th" onclick="setLang('th')">TH</button>
+      <button class="lbtn" id="btn-en" onclick="setLang('en')">EN</button>
+    </div>
+  </div>
+
+  <div class="content" id="main-content"></div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bot-nav">
+  <div class="bot-nav-inner">
+    <button class="bnav on" id="bnav-home" onclick="switchTab('home')">
+      <span class="bnav-ico">🏠</span><span id="bl-home">หน้าหลัก</span>
+    </button>
+    <button class="bnav" id="bnav-daily" onclick="switchTab('daily')">
+      <span class="bnav-ico">🎯</span><span id="bl-daily">Daily</span>
+    </button>
+    <button class="bnav" id="bnav-explore" onclick="switchTab('explore')">
+      <span class="bnav-ico">📚</span><span id="bl-explore">Explore</span>
+    </button>
+    <button class="bnav" id="bnav-dashboard" onclick="switchTab('dashboard')">
+      <span class="bnav-ico">📊</span><span id="bl-dash">Dashboard</span>
+    </button>
+  </div>
+</div>
+
+<script>
+let lang='th', curTab='home';
+let timerInt=null, timerSec=60, dcPicked=null, dcDone=false, dcStep=0;
+let expCat='all', expSc=null, expStep=0, expPicked=null;
+const st={score:0,done:0,streak:0,ids:new Set()};
+
+const LABELS={
+  th:{home:'หน้าหลัก',daily:'Daily',explore:'Explore',dash:'Dashboard',
+      sec_to_decide:'วินาทีในการตัดสินใจ',why:'ทำไม',laws:'กฎหมาย',
+      correct:'ถูกต้อง!',partial:'พอใช้',wrong:'ไม่ถูกต้อง',
+      retry:'ลองใหม่',back:'กลับ',menu:'เมนู',next:'ถัดไป',
+      skip:'ข้าม / เปลี่ยนข้อ',decide:'ตัดสินใจ',all:'ทั้งหมด',
+      tip:'💡 เคล็ดลับ: กด "ข้าม" ได้ตลอดเวลาเพื่อไปเล่นข้ออื่น',
+      edu:'คำแนะนำเพื่อการศึกษาเท่านั้น',random:'สุ่ม Scenario',
+      most_missed:'Scenarios ที่ตอบผิดมากที่สุด',mock:'ข้อมูลจำลองสำหรับการแสดงตัวอย่างระบบ',
+      users:'คน',hero_sub:'ฝึกตัดสินใจทางจริยธรรม ผ่าน 30 สถานการณ์จริง',
+      start_daily:'▶ เริ่ม Daily Challenge',browse:'เลือก Scenario ตามหมวด',
+      recent:'Scenarios ล่าสุด',uphold:'ผ่าน',conflict:'ขัดแย้ง',violated:'บกพร่อง'},
+  en:{home:'Home',daily:'Daily',explore:'Explore',dash:'Dashboard',
+      sec_to_decide:'seconds to decide',why:'Why',laws:'Laws',
+      correct:'Correct!',partial:'Partial',wrong:'Incorrect',
+      retry:'Retry',back:'Back',menu:'Menu',next:'Next',
+      skip:'Skip / Change Scenario',decide:'Decide',all:'All',
+      tip:'💡 Tip: Tap "Skip" anytime to switch to another scenario',
+      edu:'For educational purposes only',random:'Random Scenario',
+      most_missed:'Most Missed Scenarios',mock:'Mock data for system demonstration',
+      users:'users',hero_sub:'Practice ethical decision-making through 30 real scenarios',
+      start_daily:'▶ Start Daily Challenge',browse:'Browse by Category',
+      recent:'Recent Scenarios',uphold:'Upheld',conflict:'Conflict',violated:'Violated'}
+};
+function L(k){return LABELS[lang][k]||k;}
+
+const CAT={
+  clinical:{th:'คลินิก/วอร์ด',en:'Clinical/Ward',bg:'#E6F1FB',fg:'#0C447C',ico:'🏥'},
+  digital:{th:'ดิจิทัล/โซเชียล',en:'Digital/Social',bg:'#FAEEDA',fg:'#854F0B',ico:'📱'},
+  family:{th:'ญาติผู้ป่วย',en:'Patient Family',bg:'#EAF3DE',fg:'#27500A',ico:'👨‍👩‍👧'},
+  team:{th:'ทีมสุขภาพ',en:'Health Team',bg:'#FCEBEB',fg:'#A32D2D',ico:'⚕️'},
+  legal:{th:'กฎหมายพยาบาล',en:'Nursing Law',bg:'#EEEDFE',fg:'#3C3489',ico:'⚖️'}
+};
+
+const SC=[
+  {id:1,cat:'clinical',correct:2,scores:[0,5,10],
+   cn:{th:'⚡ Fidelity ✖ ป้ายโรงพยาบาล+ลักษณะแผลระบุตัวผู้ป่วยได้แม้ไม่เห็นหน้า',en:'⚡ Fidelity ✖ — hospital badge + wound pattern identifies patient even without face'},
+   conflict:{au:[false,true,true],be:[false,true,true],nm:[false,true,true],ju:[true,true,true]},
+   th:{e:'📸',t:'โพสต์รูปแผลผู้ป่วย',s:'คุณถ่ายรูปแผลผู้ป่วยหลังผ่าตัดและกำลังจะโพสต์ลง Instagram พร้อม #NursingLife โดยไม่บลัร์ป้ายชื่อโรงพยาบาล',c:['โพสต์ได้เลย ไม่เห็นหน้าผู้ป่วย','ขอ consent ผู้ป่วยก่อนโพสต์','ไม่โพสต์เลย — ยังมีข้อมูลระบุตัวตน'],ic:['❌','⚠️','✅'],w:['❌ ป้ายชื่อโรงพยาบาล+ลักษณะแผลระบุตัวได้ Risk: ถูกฟ้อง เพิกถอนใบอนุญาต','⚠️ consent ไม่ครอบคลุมทุกองค์ประกอบที่ระบุตัวตน','✅ Fidelity กำหนดชัด: ห้ามโพสต์ข้อมูลผู้ป่วยทุกรูปแบบ'],l:['พ.ร.บ.สุขภาพแห่งชาติ 2550 มาตรา 7','พ.ร.บ.คอมพิวเตอร์ — เผยแพร่ข้อมูลส่วนบุคคล','จรรยาบรรณพยาบาล — Fidelity'],r:['🔔 แจ้งเพื่อนให้ลบรูปทันที','🗑️ ลบรูปและตรวจสอบอัลบั้ม','📝 บันทึกว่าได้แจ้งเตือนแล้ว'],qq:'ส่งรูปแผลผู้ป่วยใน LINE "เพื่อการศึกษา" ผิดจรรยาบรรณไหม?',qo:['ไม่ผิด เพราะเป็นการศึกษา','ผิด เพราะเผยแพร่ข้อมูลผู้ป่วย','ขึ้นอยู่กับว่าบลัร์หน้าไหม'],qc:1},
+   en:{e:'📸',t:'Posting Patient Wound Photo',s:'You photograph a post-surgical wound and are about to post on Instagram with #NursingLife without blurring the hospital name tag.',c:['Post it — face not visible','Get patient consent first','Don\'t post — identifiable info still visible'],ic:['❌','⚠️','✅'],w:['❌ Hospital badge + wound can identify patient. Risk: lawsuit, license revocation.','⚠️ Consent alone doesn\'t cover all identifiable elements.','✅ Fidelity principle: no patient info on social media.'],l:['National Health Act 2007 Section 7','Computer Crime Act — sharing personal data','Nursing Code of Ethics — Fidelity'],r:['🔔 Alert colleague to delete immediately','🗑️ Delete photos, check entire album','📝 Document that you reported'],qq:'Sending a patient wound photo to LINE "for study" — ethical breach?',qo:['No — educational use','Yes — sharing patient data','Depends if face is blurred'],qc:1}},
+  {id:2,cat:'clinical',correct:1,scores:[0,10,5],
+   cn:{th:'⚡ Autonomy ผู้ป่วย ✔ ปะทะ Role Boundary นักศึกษา ✖',en:'⚡ Patient Autonomy ✔ vs Role Boundary (student has no authority) ✖'},
+   conflict:{au:[false,true,true],be:[false,true,true],nm:[false,true,false],ju:[false,true,true]},
+   th:{e:'📋',t:'Informed Consent โดยนักศึกษา',s:'แพทย์ยุ่งมาก ขอให้คุณ (นักศึกษาพยาบาล) อธิบายขั้นตอนผ่าตัดและรับเซ็น consent form แทน',c:['ทำได้เลย แพทย์มอบหมาย','ปฏิเสธ — ไม่ใช่หน้าที่นักศึกษา','อธิบายเบื้องต้นได้ ให้แพทย์รับเซ็นเอง'],ic:['❌','✅','⚠️'],w:['❌ นักศึกษาไม่มีใบอนุญาต Risk: ถ้าเกิดความเสียหาย รับผิดร่วม','✅ ปกป้อง Autonomy ผู้ป่วย — สิทธิรับข้อมูลจากผู้มีอำนาจ','⚠️ ผู้ป่วยอาจเซ็นโดยไม่เข้าใจขั้นตอนจริง'],l:['พ.ร.บ.สถานพยาบาล — แพทย์มีหน้าที่อธิบาย','หลัก Autonomy — สิทธิผู้ป่วยรับข้อมูลครบ','ขอบเขตปฏิบัติของนักศึกษาพยาบาล'],r:['🗣️ แจ้งแพทย์ว่าไม่สามารถรับ consent ได้','📝 บันทึกการปฏิเสธและเหตุผล','📢 รายงานหัวหน้าถ้าแพทย์ยังยืนยัน'],qq:'นักศึกษาพยาบาลรับ informed consent แทนแพทย์ได้ไหม?',qo:['ได้ ถ้าแพทย์มอบหมาย','ไม่ได้ เป็นหน้าที่แพทย์','ได้ ถ้าผู้ป่วยเซ็นแล้ว'],qc:1},
+   en:{e:'📋',t:'Informed Consent by Student',s:'A busy physician asks you (nursing student) to explain the procedure and obtain the consent form signature.',c:['Do it — doctor delegated','Refuse — not a student\'s role','Explain basics, let doctor sign'],ic:['❌','✅','⚠️'],w:['❌ Students have no license. Risk: if harm occurs, student and institution share liability.','✅ Protects patient Autonomy — right to info from licensed professional.','⚠️ Patient may sign without truly understanding.'],l:['Medical Facility Act — physician must explain','Autonomy — patient\'s right to full information','Scope of nursing student practice'],r:['🗣️ Tell physician you cannot obtain consent','📝 Document your refusal and reason','📢 Report to supervisor if physician insists'],qq:'Can a nursing student obtain informed consent on behalf of a physician?',qo:['Yes if delegated','No — physician\'s duty','Yes if patient signs'],qc:1}},
+  {id:3,cat:'clinical',correct:1,scores:[0,10,7],
+   cn:{th:'⚡ Accountability ✔ ปะทะ Team Loyalty — Non-maleficence ผู้ป่วยมาก่อนเสมอ',en:'⚡ Accountability ✔ vs Team Loyalty — patient Non-maleficence always first'},
+   conflict:{au:[true,true,true],be:[false,true,true],nm:[false,true,false],ju:[false,true,true]},
+   th:{e:'💊',t:'รายงานความผิดพลาดทางยา',s:'คุณสังเกตว่าเพื่อนพยาบาลให้ยาผิดขนาด แต่ผู้ป่วยยังไม่มีอาการผิดปกติ',c:['ไม่บอกใคร เพราะผู้ป่วยยังปกติ','รายงานหัวหน้าพยาบาลทันที','บอกเพื่อนก่อน ให้เพื่อนรายงานเอง'],ic:['❌','✅','⚠️'],w:['❌ ความผิดพลาดอาจมีผลเสียภายหลัง การนิ่งเฉยละเมิด Non-maleficence','✅ รายงานทันที = Moral Courage เพื่อความปลอดภัยผู้ป่วย','⚠️ ควรยืนยันด้วยว่าการรายงานเกิดขึ้นจริง'],l:['พ.ร.บ.วิชาชีพการพยาบาลฯ มาตรา 31','หลัก Non-maleficence — ป้องกันอันตราย','มาตรฐานการรายงานความผิดพลาดทางการแพทย์'],r:['🚨 รายงานหัวหน้าทันที','📝 บันทึก: เวลา ยา ขนาดที่ให้จริง','🔍 ติดตามอาการผู้ป่วยอย่างใกล้ชิด'],qq:'พบว่าเพื่อนให้ยาผิดขนาด สิ่งแรกที่ถูกต้องคืออะไร?',qo:['สังเกตอาการผู้ป่วยก่อน','รายงานหัวหน้าทันที','บอกเพื่อนให้รายงานเอง'],qc:1},
+   en:{e:'💊',t:'Reporting Medication Error',s:'You notice a colleague administered the wrong medication dose. The patient shows no symptoms yet.',c:['Say nothing — patient seems fine','Report to head nurse immediately','Tell colleague first, let them report'],ic:['❌','✅','⚠️'],w:['❌ Delayed effects may occur; silence directly violates Non-maleficence.','✅ Immediate reporting is mandatory — this is Moral Courage.','⚠️ Better than A but confirm the report was actually made.'],l:['Nursing Profession Act Section 31','Non-maleficence — prevent patient harm','Medical error reporting standards'],r:['🚨 Report to supervisor immediately','📝 Document: time, medication, actual dose','🔍 Monitor patient closely'],qq:'You discover a colleague gave the wrong dose. Your FIRST action:',qo:['Monitor patient first','Report to head nurse immediately','Tell colleague to self-report'],qc:1}},
+  {id:4,cat:'clinical',correct:1,scores:[0,10,5],
+   cn:{th:'⚡ Autonomy ผู้ป่วย ✔ ปะทะ Beneficence ครอบครัว ✔ — Autonomy ชนะเสมอ',en:'⚡ Patient Autonomy ✔ vs Family Beneficence ✔ — Autonomy always wins'},
+   conflict:{au:[false,true,true],be:[true,true,true],nm:[false,true,true],ju:[false,true,true]},
+   th:{e:'👨‍👩‍👧',t:'เปิดเผยข้อมูลให้ลูก',s:'ลูกของผู้ป่วยขอทราบผลวินิจฉัยมะเร็งของแม่ แต่แม่บอกว่าไม่ต้องการให้ลูกรู้',c:['บอกลูก เพราะครอบครัวต้องรู้','ไม่บอก เคารพความประสงค์ผู้ป่วย','บอกให้แพทย์จัดการ'],ic:['❌','✅','⚠️'],w:['❌ ละเมิด Autonomy และ Fidelity อาจฟ้องร้องได้','✅ ข้อมูลสุขภาพเป็นของผู้ป่วย — เธอมีสิทธิกำหนดว่าใครรู้','⚠️ พยาบาลเองก็มีหน้าที่เคารพ ไม่โยนให้แพทย์อย่างเดียว'],l:['พ.ร.บ.สุขภาพแห่งชาติ มาตรา 7','หลัก Autonomy + Fidelity','PDPA — ความยินยอมในการเปิดเผย'],r:['🗣️ แจ้งลูกว่าต้องคุยกับผู้ป่วยโดยตรง','📝 บันทึกความประสงค์ผู้ป่วย','👨‍⚕️ แจ้งแพทย์เพื่อช่วยสื่อสาร'],qq:'ข้อมูลสุขภาพของผู้ป่วยเป็นของใคร?',qo:['ครอบครัวและผู้ป่วยร่วมกัน','ผู้ป่วยเท่านั้น','โรงพยาบาลและผู้ป่วย'],qc:1},
+   en:{e:'👨‍👩‍👧',t:'Disclosing Diagnosis to Family',s:'A patient\'s child asks about their mother\'s cancer diagnosis. The mother asked you not to tell her children.',c:['Tell the child — family needs to know','Don\'t tell — respect patient\'s wishes','Let the doctor handle it'],ic:['❌','✅','⚠️'],w:['❌ Violates Autonomy and Fidelity. Risk: patient loses trust; possible lawsuit.','✅ Health information belongs to the patient — she decides who knows.','⚠️ Nurses also have a duty to uphold this.'],l:['National Health Act Section 7','Autonomy + Fidelity','PDPA — consent for disclosure'],r:['🗣️ Politely direct family to speak with patient','📝 Document patient\'s wishes','👨‍⚕️ Inform physician to assist communication'],qq:'Who does a patient\'s health information belong to?',qo:['Family and patient jointly','The patient alone','Hospital and patient'],qc:1}},
+  {id:5,cat:'team',correct:1,scores:[3,10,0],
+   cn:{th:'⚡ Accountability ✔ ปะทะ Cooperation — Moral Courage = พูดด้วยความเคารพ ไม่เงียบ',en:'⚡ Accountability ✔ vs Cooperation — Moral Courage = speak up respectfully, never silent'},
+   conflict:{au:[true,true,true],be:[false,true,true],nm:[false,true,false],ju:[false,true,false]},
+   th:{e:'⚕️',t:'ขัดแย้งกับคำสั่งแพทย์',s:'แพทย์สั่งยาในขนาดที่คุณเชื่อว่าสูงเกินและอาจเป็นอันตราย แต่แพทย์ยืนยันคำสั่งเดิม',c:['ให้ยาตามคำสั่งทันที','แจ้งข้อกังวลอีกครั้ง บันทึก ยกระดับถ้าจำเป็น','ปฏิเสธให้ยาโดยไม่บอกใคร'],ic:['⚠️','✅','❌'],w:['⚠️ พยาบาลมีหน้าที่ตั้งคำถามคำสั่งที่ไม่ปลอดภัย ถ้าผู้ป่วยเสียหาย รับผิดร่วม','✅ Moral Courage — พูด บันทึก ยกระดับตามสาย','❌ ปฏิเสธโดยไม่สื่อสาร = สุญญากาศการรักษา'],l:['หลัก Non-maleficence — ป้องกันอันตราย','ความรับผิดชอบทางวิชาชีพพยาบาล','มาตรฐานการสื่อสารในทีมสุขภาพ'],r:['💬 แจ้งข้อกังวลกับแพทย์อีกครั้ง','📝 บันทึก: วันเวลา คำสั่ง ข้อกังวล','📢 ยกระดับถึงหัวหน้าถ้าไม่ได้รับการแก้ไข'],qq:'Moral Courage ในวิชาชีพพยาบาลหมายถึงอะไร?',qo:['ความกล้าทำตามคำสั่ง','ความกล้าพูดในสิ่งที่ถูกต้องแม้เสี่ยง','ความกล้าเผชิญผู้ป่วยวิกฤต'],qc:1},
+   en:{e:'⚕️',t:'Disagreeing with Doctor\'s Order',s:'A doctor orders what you believe is a dangerously high medication dose and confirms when you question it.',c:['Give medication immediately','Express concern again, document, escalate if needed','Refuse without telling anyone'],ic:['⚠️','✅','❌'],w:['⚠️ Nurses have a duty to question unsafe orders. Risk: nurse shares liability if harm occurs.','✅ Moral Courage — speak up, document, escalate through proper channels.','❌ Silent refusal creates a care vacuum — patient remains at risk.'],l:['Non-maleficence — prevent patient harm','Nurse\'s professional accountability','Healthcare team communication standards'],r:['💬 Clearly restate your concern to the doctor','📝 Document: time, order, concern expressed','📢 Escalate to supervisor if unresolved'],qq:'Moral Courage in nursing means:',qo:['Courage to follow orders','Courage to speak the right thing even when risky','Courage to face critical patients'],qc:1}},
+  {id:6,cat:'digital',correct:1,scores:[0,10,0],
+   cn:{th:'⚡ PDPA กำหนดชัด: ต้องมี consent ก่อนส่งข้อมูลส่วนบุคคลทุกกรณี แม้เจตนาดี',en:'⚡ PDPA clear: consent required before sharing any personal data, even with good intentions'},
+   conflict:{au:[false,true,false],be:[false,true,false],nm:[false,true,false],ju:[false,true,false]},
+   th:{e:'🔒',t:'PDPA กับข้อมูลวิจัย',s:'นักวิจัยขอให้คุณส่งรายชื่อและเบอร์โทรผู้ป่วยเบาหวานเพื่อเชิญเข้าร่วมงานวิจัย',c:['ส่งได้ ถ้าเป็นประโยชน์ต่อผู้ป่วย','ปฏิเสธ ต้องได้ consent ผู้ป่วยก่อน','ส่งเฉพาะชื่อ ไม่ส่งเบอร์โทร'],ic:['❌','✅','⚠️'],w:['❌ เจตนาดีไม่ยกเว้น PDPA Risk: จำคุกสูงสุด 1 ปี หรือปรับ 1 ล้านบาท','✅ PDPA กำหนดชัดว่าต้องมี consent ก่อนเสมอ','⚠️ ชื่อผู้ป่วยก็เป็นข้อมูลส่วนบุคคลตาม PDPA'],l:['PDPA พ.ร.บ.คุ้มครองข้อมูลส่วนบุคคล 2562','หลัก Autonomy — สิทธิในข้อมูลของตนเอง','มาตรฐานจริยธรรมการวิจัย'],r:['🚫 แจ้งนักวิจัยว่าต้องขอ consent ก่อน','📋 ส่งผ่านช่องทาง IRB ที่ได้รับอนุมัติ','📝 บันทึกการปฏิเสธและเหตุผล'],qq:'PDPA 2562 บังคับใช้กับใคร?',qo:['เฉพาะองค์กรเอกชน','ทุกองค์กรและบุคคลที่จัดเก็บข้อมูลส่วนบุคคล','เฉพาะโรงพยาบาลเอกชน'],qc:1},
+   en:{e:'🔒',t:'PDPA and Research Data',s:'A researcher asks you to send a list of diabetic patients\' names and phone numbers for a study.',c:['Send it — it benefits patients','Refuse — must obtain patient consent first','Send names only, not phone numbers'],ic:['❌','✅','⚠️'],w:['❌ Good intention doesn\'t exempt PDPA violation. Risk: up to 1 year imprisonment or 1M THB fine.','✅ PDPA is clear — consent must be obtained before sharing any personal data.','⚠️ Patient names are also personal data under PDPA.'],l:['PDPA — Personal Data Protection Act B.E. 2562','Autonomy — right to one\'s own data','Research ethics standards'],r:['🚫 Tell researcher patient consent is required first','📋 Share data only through IRB-approved channels','📝 Document your refusal and reason'],qq:'Thailand\'s PDPA applies to:',qo:['Private organizations only','All organizations and individuals storing personal data','Private hospitals only'],qc:1}},
+  {id:7,cat:'digital',correct:1,scores:[0,10,7],
+   cn:{th:'⚡ Advocacy ✔ ปะทะ Team Harmony — Advocacy มาก่อน พูดกับเพื่อนก่อน',en:'⚡ Advocacy ✔ vs Team Harmony — Advocacy first; speak to colleague before escalating'},
+   conflict:{au:[false,true,true],be:[false,true,true],nm:[false,true,true],ju:[false,true,true]},
+   th:{e:'📱',t:'Selfie ที่มี Whiteboard ผู้ป่วย',s:'เพื่อนถ่าย selfie ที่ nurses station ชื่อผู้ป่วยติดมาในพื้นหลัง กำลังจะโพสต์',c:['ปล่อยไป ไม่ใช่เรื่องของเรา','บอกเพื่อนให้ลบรูปและไม่โพสต์','รายงานอาจารย์ทันทีโดยไม่พูดกับเพื่อน'],ic:['❌','✅','⚠️'],w:['❌ เห็นแล้วเพิกเฉย = มีส่วนร่วมโดยอ้อม','✅ Advocacy — ปกป้องผู้ป่วย พูดกับเพื่อนก่อน = วิธีสร้างสรรค์','⚠️ ข้ามขั้นตอน อาจทำให้เพื่อนรู้สึกถูกทรยศ'],l:['พ.ร.บ.สุขภาพแห่งชาติ 2550 มาตรา 7','พ.ร.บ.คอมพิวเตอร์ — เผยแพร่ข้อมูลส่วนบุคคล','จรรยาบรรณพยาบาล — Advocacy + Fidelity'],r:['📵 แจ้งเพื่อนให้ลบรูปทันที','🔍 ตรวจสอบว่าไม่มีรูปอื่นที่มีข้อมูลผู้ป่วย','📚 แนะนำเพื่อนเรียนรู้นโยบาย social media'],qq:'เห็นเพื่อนกำลังโพสต์รูปที่มีข้อมูลผู้ป่วย ควรทำอะไรก่อน?',qo:['ไม่ใช่เรื่องของเรา','แจ้งเพื่อนให้ลบทันที','รายงานหัวหน้าก่อน'],qc:1},
+   en:{e:'📱',t:'Selfie with Patient Whiteboard',s:'A colleague takes a selfie at nurses station. A patient whiteboard is visible in the background. They\'re about to post.',c:['Ignore it — not your business','Tell colleague to delete and not post','Report to supervisor without speaking to colleague'],ic:['❌','✅','⚠️'],w:['❌ Witnessing and staying silent = indirect complicity.','✅ Advocacy requires protecting patients. Speaking to colleague first is constructive.','⚠️ Skipping colleague may feel like betrayal.'],l:['National Health Act 2007 Section 7','Computer Crime Act — sharing personal data','Nursing Code of Ethics — Advocacy + Fidelity'],r:['📵 Tell colleague to delete photo immediately','🔍 Check if other photos contain patient info','📚 Recommend colleague review hospital social media policy'],qq:'You see a colleague about to post with patient info visible. First action:',qo:['Not my business','Tell colleague to delete immediately','Report to supervisor first'],qc:1}},
+  {id:8,cat:'legal',correct:1,scores:[0,10,0],
+   cn:{th:'⚡ Autonomy ผู้ป่วย ปะทะ Non-maleficence — กฎหมายไทยกำหนดชัด: การุณยฆาตผิดกฎหมายทุกกรณี',en:'⚡ Patient Autonomy vs Non-maleficence — Thai law is clear: euthanasia is illegal in all forms'},
+   conflict:{au:[false,true,false],be:[false,true,true],nm:[false,true,false],ju:[false,true,false]},
+   th:{e:'🕊️',t:'ผู้ป่วยขอการุณยฆาต',s:'ผู้ป่วยระยะสุดท้ายทรมานมากขอให้คุณช่วย "ยุติทุกอย่างให้เร็ว"',c:['ช่วยเพราะสงสารและเป็นสิ่งที่ผู้ป่วยต้องการ','ปฏิเสธ อธิบายขอบเขตกฎหมาย และเสนอ Palliative Care','เพิกเฉย ไม่อยากยุ่ง'],ic:['❌','✅','❌'],w:['❌ การุณยฆาตผิดกฎหมายในไทย Risk: จำคุก เพิกถอนใบอนุญาต แม้มีเจตนาดี','✅ ปฏิเสธตามกฎหมาย + เสนอ Palliative Care — นี่คือ Beneficence ที่แท้จริง','❌ การเพิกเฉยละเมิด Caring และ Non-maleficence'],l:['ประมวลกฎหมายอาญา — การฆ่าคนตายโดยเจตนา','หลัก Non-maleficence — ไม่ทำให้ตายโดยเจตนา','แนวทาง Palliative Care กระทรวงสาธารณสุข'],r:['🏥 แจ้งทีม Palliative Care ทันที','💊 ปรึกษาแพทย์เรื่องการบรรเทาความเจ็บปวด','💙 ให้การสนับสนุนทางอารมณ์'],qq:'การุณยฆาตในประเทศไทยมีสถานะทางกฎหมายอย่างไร?',qo:['ถูกกฎหมายสำหรับผู้ป่วยระยะสุดท้าย','ผิดกฎหมายทุกรูปแบบ','ถูกกฎหมายถ้าครอบครัวยินยอม'],qc:1},
+   en:{e:'🕊️',t:'Patient Requests Euthanasia',s:'A terminal patient in severe pain asks you to "end everything quickly."',c:['Help — you feel sorry and it\'s what they want','Decline, explain legal limits, offer Palliative Care','Ignore — don\'t want to get involved'],ic:['❌','✅','❌'],w:['❌ Euthanasia is illegal in Thailand. Risk: criminal prosecution, license revocation.','✅ Legally decline + offer Palliative Care — this IS true Beneficence.','❌ Patient is suffering; ignoring violates Caring and Non-maleficence.'],l:['Thai Penal Code — intentional killing','Non-maleficence — must not intentionally cause death','MoPH Palliative Care Guidelines'],r:['🏥 Alert Palliative Care team immediately','💊 Consult physician on pain management','💙 Provide emotional and spiritual support'],qq:'What is the legal status of euthanasia in Thailand?',qo:['Legal for terminal patients','Illegal in all forms','Legal with family consent'],qc:1}},  {id:9,cat:'clinical',correct:1,scores:[0,10,3],
+   cn:{th:'⚡ Beneficence ✔ ปะทะ Non-maleficence — Palliative Care ตอบโจทย์ทั้งสองหลัก',en:'⚡ Beneficence ✔ vs Non-maleficence — Palliative Care addresses both'},
+   conflict:{au:[false,true,false],be:[false,true,true],nm:[false,true,false],ju:[true,true,false]},
+   th:{e:'🕯️',t:'การดูแลผู้ป่วยระยะสุดท้าย',s:'ผู้ป่วยระยะสุดท้ายร้องขอมอร์ฟีนเพิ่มเพื่อบรรเทาความเจ็บปวด แต่ปริมาณอาจเร่งการเสียชีวิต',c:['ปฏิเสธ กลัวเร่งการตาย','ให้ตามคำสั่งแพทย์เพื่อบรรเทาความเจ็บปวด','ให้ตามที่ผู้ป่วยขอโดยไม่ปรึกษาแพทย์'],ic:['❌','✅','❌'],w:['❌ ผู้ป่วยมีสิทธิ์ได้รับการบรรเทาความเจ็บปวด','✅ ให้ตามคำสั่งแพทย์ที่ชัดเจน — นี่คือ Beneficence ที่แท้จริง','❌ ต้องมีคำสั่งแพทย์ ไม่ให้เองโดยไม่ผ่านระบบ'],l:['แนวทาง Palliative Care กระทรวงสาธารณสุข','หลัก Non-maleficence — ลดความทุกข์ทรมาน','สิทธิผู้ป่วยระยะสุดท้าย พ.ร.บ.สุขภาพแห่งชาติ'],r:['🏥 แจ้งทีม Palliative Care','💊 ให้ยาตามคำสั่งแพทย์','💙 ให้การสนับสนุนทางอารมณ์'],qq:'หลักจริยธรรมหลักที่ใช้ใน Palliative Care คืออะไร?',qo:['Autonomy + Veracity','Beneficence + Non-maleficence','Justice + Fidelity'],qc:1},
+   en:{e:'🕯️',t:'End-of-Life Care',s:'A terminal patient requests additional morphine for pain relief. The dose may hasten death.',c:['Refuse — afraid of hastening death','Administer per physician order to relieve suffering','Give what patient requests without consulting doctor'],ic:['❌','✅','❌'],w:['❌ Patient has the right to pain relief in palliative care.','✅ Give per physician order — this is true Beneficence.','❌ Medication must follow physician orders through proper channels.'],l:['MoPH Palliative Care Guidelines','Non-maleficence — reduce suffering','Patient rights under National Health Act'],r:['🏥 Alert Palliative Care team','💊 Administer per physician order','💙 Provide emotional support'],qq:'The primary ethical principles in Palliative Care are:',qo:['Autonomy + Veracity','Beneficence + Non-maleficence','Justice + Fidelity'],qc:1}},
+  {id:10,cat:'clinical',correct:1,scores:[0,10,0],
+   cn:{th:'⚡ Non-maleficence (ป้องกันอันตรายเด็ก) ✔ ปะทะ Fidelity (ความลับครอบครัว) — เด็กมาก่อนเสมอ',en:'⚡ Non-maleficence (protect child) ✔ vs Fidelity (family confidentiality) — child always comes first'},
+   conflict:{au:[false,true,false],be:[false,true,false],nm:[false,true,false],ju:[false,true,false]},
+   th:{e:'👶',t:'ผู้ป่วยถูกทารุณกรรม',s:'เด็กอายุ 7 ขวบมาด้วยรอยฟกช้ำหลายจุด พ่อแม่บอกว่า "หกล้ม" แต่รูปแบบบาดแผลน่าสงสัย',c:['เชื่อคำอธิบายพ่อแม่','บันทึกและรายงานตามระบบคุ้มครองเด็ก','ถามเด็กโดยตรงต่อหน้าพ่อแม่'],ic:['❌','✅','⚠️'],w:['❌ ละเมิด Non-maleficence และหน้าที่ Advocacy ต่อเด็ก','✅ พยาบาลมีหน้าที่รายงานตาม พ.ร.บ.คุ้มครองเด็ก','⚠️ เสี่ยง — เด็กอาจไม่กล้าพูดต่อหน้าผู้กระทำ'],l:['พ.ร.บ.คุ้มครองเด็ก พ.ศ.2546','พ.ร.บ.ป้องกันความรุนแรงในครอบครัว','หน้าที่รายงานของบุคลากรสาธารณสุข'],r:['📋 บันทึกรายละเอียดบาดแผลอย่างละเอียด','📢 รายงานตามระบบคุ้มครองเด็กทันที','🔒 สัมภาษณ์เด็กแยกต่างหากจากผู้ปกครอง'],qq:'พยาบาลสงสัยว่าเด็กถูกทำร้าย ขั้นตอนแรกที่ถูกต้องคืออะไร?',qo:['รอหลักฐานให้ชัดเจนก่อน','รายงานตามระบบคุ้มครองเด็กทันที','สัมภาษณ์เด็กเพียงลำพัง'],qc:1},
+   en:{e:'👶',t:'Suspected Child Abuse',s:'A 7-year-old presents with multiple bruises. Parents say "fell down" but the injury pattern is suspicious.',c:['Accept parents explanation','Document and report through child protection system','Question child directly in front of parents'],ic:['❌','✅','⚠️'],w:['❌ Violates Non-maleficence and Advocacy duty toward the child.','✅ Nurses are mandated reporters under child protection law.','⚠️ Risky — child may not speak truthfully in front of the abuser.'],l:['Child Protection Act B.E. 2546','Domestic Violence Prevention Act','Mandatory reporting duty for healthcare workers'],r:['📋 Document injury details thoroughly','📢 Report through child protection system immediately','🔒 Interview child separately from parents'],qq:'A nurse suspects child abuse. The correct first step is:',qo:['Wait for clearer evidence','Report through child protection system immediately','Interview child alone first'],qc:1}},
+  {id:11,cat:'clinical',correct:1,scores:[0,10,3],
+   cn:{th:'⚡ Non-maleficence (ความเหนื่อยล้าเพิ่มความผิดพลาด) ✔ ปะทะ Advocacy — แจ้งหัวหน้าคือคำตอบ',en:'⚡ Non-maleficence (fatigue increases errors) ✔ vs Advocacy — notifying supervisor resolves both'},
+   conflict:{au:[false,true,false],be:[false,true,true],nm:[false,true,false],ju:[false,true,false]},
+   th:{e:'😴',t:'การทำงานขณะเหนื่อยล้า',s:'คุณทำงานกะดึกติดต่อกัน 16 ชั่วโมง รู้สึกเหนื่อยมากแต่ยังไม่มีคนมาแทน',c:['ทำงานต่อโดยไม่บอกใคร','แจ้งหัวหน้าทันที เพื่อหาคนมาช่วย','ออกจากงานทันทีเพราะเหนื่อยเกิน'],ic:['⚠️','✅','❌'],w:['⚠️ ความเหนื่อยล้าเพิ่มโอกาสเกิดความผิดพลาดอย่างมีนัยสำคัญ','✅ ต้องแจ้งเพื่อความปลอดภัยของผู้ป่วยและตัวเอง','❌ การทิ้งผู้ป่วยโดยไม่มีคนรับช่วงถือเป็นความผิด'],l:['หลัก Non-maleficence — ป้องกันอันตรายจากการดูแลที่บกพร่อง','ความรับผิดชอบทางวิชาชีพ','กฎระเบียบชั่วโมงทำงานบุคลากรสาธารณสุข'],r:['📢 แจ้งหัวหน้าทันทีและบันทึกชั่วโมงการทำงาน','👥 รอจนกว่าจะมีคนมาแทน','📝 บันทึกสถานการณ์ไว้เป็นหลักฐาน'],qq:'ความเหนื่อยล้าของพยาบาลเกี่ยวข้องกับหลักจริยธรรมใดมากที่สุด?',qo:['Autonomy','Non-maleficence','Justice'],qc:1},
+   en:{e:'😴',t:'Working While Fatigued',s:'You have worked 16 consecutive hours. You are exhausted but no replacement has arrived.',c:['Continue working without telling anyone','Notify supervisor immediately to arrange relief','Leave immediately because you are too tired'],ic:['⚠️','✅','❌'],w:['⚠️ Fatigue significantly increases error risk.','✅ Report to ensure patient safety and your own wellbeing.','❌ Abandoning patients without handover is a professional offense.'],l:['Non-maleficence — preventing harm from impaired care','Professional accountability','Healthcare worker hour regulations'],r:['📢 Notify supervisor immediately','👥 Wait until replacement arrives','📝 Document the situation as evidence'],qq:'Nurse fatigue is most closely related to which principle?',qo:['Autonomy','Non-maleficence','Justice'],qc:1}},
+  {id:12,cat:'clinical',correct:1,scores:[0,10,3],
+   cn:{th:'⚡ Autonomy (ปฏิเสธด้วยเหตุผลศาสนา) ✔ ปะทะ Non-maleficence — กฎหมายไทย: Autonomy ชนะ',en:'⚡ Autonomy (religious refusal) ✔ vs Non-maleficence — Thai law: Autonomy prevails for competent adults'},
+   conflict:{au:[false,true,false],be:[false,true,true],nm:[true,true,true],ju:[false,true,false]},
+   th:{e:'🙏',t:'ผู้ป่วยปฏิเสธเลือดด้วยเหตุผลทางศาสนา',s:'ผู้ป่วย Jehovah Witness ปฏิเสธการรับเลือดที่จำเป็นทางการแพทย์ ครอบครัวยินยอมแต่ผู้ป่วยไม่',c:['ให้เลือดเพราะจำเป็นทางการแพทย์','เคารพการตัดสินใจและหาทางเลือกอื่น','ให้ครอบครัวตัดสินใจแทน'],ic:['❌','✅','❌'],w:['❌ ละเมิด Autonomy ของผู้ป่วยที่มีสติ','✅ เคารพความเชื่อ หาทางเลือก เช่น blood substitutes','❌ ผู้ป่วยที่มีสติมีอำนาจตัดสินใจเหนือครอบครัว'],l:['หลัก Autonomy — สิทธิในการปฏิเสธการรักษา','หลัก Justice — การดูแลโดยไม่เลือกปฏิบัติ','พ.ร.บ.สุขภาพแห่งชาติ — เสรีภาพในการปฏิบัติตามความเชื่อ'],r:['🙏 เคารพความเชื่อทางศาสนา','🔬 หาทางเลือก เช่น blood substitutes','📝 บันทึกการตัดสินใจและทางเลือกที่นำเสนอ'],qq:'ผู้ป่วยที่มีสติสมบูรณ์ปฏิเสธการรักษาด้วยเหตุผลทางศาสนา พยาบาลควรทำอย่างไร?',qo:['ให้การรักษาเพราะช่วยชีวิต','เคารพการปฏิเสธและหาทางเลือก','ให้ครอบครัวตัดสินใจ'],qc:1},
+   en:{e:'🙏',t:'Patient Refuses Blood on Religious Grounds',s:'A Jehovah Witness patient refuses blood transfusion despite medical necessity. Family consents but patient does not.',c:['Give blood because it is medically necessary','Respect patient decision, explore alternatives','Let family decide instead'],ic:['❌','✅','❌'],w:['❌ Violates Autonomy of a competent adult patient.','✅ Respect beliefs, explore alternatives like blood substitutes.','❌ A competent patient decision supersedes the family.'],l:['Autonomy — right to refuse treatment','Justice — care without discrimination','National Health Act — freedom to practice beliefs'],r:['🙏 Respect religious beliefs','🔬 Explore alternatives such as blood substitutes','📝 Document decision and options presented'],qq:'A competent patient refuses treatment for religious reasons. The nurse should:',qo:['Provide treatment to save life','Respect refusal and find alternatives','Let family decide'],qc:1}},
+  {id:13,cat:'digital',correct:1,scores:[0,10,0],
+   cn:{th:'⚡ Fidelity (ความลับผู้ป่วย) ✔ ปะทะ Beneficence (AI ช่วยทำงานได้ดีกว่า) — ต้อง anonymize ก่อนเสมอ',en:'⚡ Fidelity (patient confidentiality) ✔ vs Beneficence (AI improves work) — must anonymize first always'},
+   conflict:{au:[false,true,false],be:[false,true,false],nm:[false,true,false],ju:[false,true,false]},
+   th:{e:'🤖',t:'AI และความลับผู้ป่วย',s:'คุณต้องการช่วยเขียนรายงานเคสผู้ป่วย จึงพิมพ์ข้อมูลผู้ป่วยรวมถึงชื่อและอาการลงใน ChatGPT',c:['ทำได้ ChatGPT ปลอดภัย','ไม่ควร ต้อง de-identify ก่อนใช้ AI ทุกประเภท','ได้ ถ้าเป็นการศึกษาไม่ใช่เชิงพาณิชย์'],ic:['❌','✅','❌'],w:['❌ ChatGPT อาจเก็บข้อมูลและไม่รับรองความเป็นส่วนตัวทางการแพทย์','✅ ต้อง anonymize ก่อนเสมอ ไม่ว่าจะใช้ AI ใด','❌ วัตถุประสงค์ไม่เปลี่ยนความเสี่ยงด้านความเป็นส่วนตัว'],l:['PDPA — พ.ร.บ.คุ้มครองข้อมูลส่วนบุคคล 2562','หลัก Fidelity — ความลับผู้ป่วย','นโยบายความปลอดภัยข้อมูลสถานพยาบาล'],r:['🔒 ลบข้อมูลระบุตัวตนทั้งหมดก่อนใช้ AI','✍️ ใช้ข้อมูลสมมติแทน','📋 ปรึกษา IT ของโรงพยาบาลเรื่องนโยบาย AI'],qq:'ก่อนใช้ AI tools สำหรับงานพยาบาล สิ่งสำคัญที่สุดที่ต้องทำคืออะไร?',qo:['ตรวจสอบว่า AI มีชื่อเสียงดี','ลบข้อมูลระบุตัวตนผู้ป่วยทั้งหมดก่อน','ได้รับอนุญาตจากผู้ป่วย'],qc:1},
+   en:{e:'🤖',t:'AI Tools and Patient Confidentiality',s:'You want help writing a case report and type patient information including name and symptoms into ChatGPT.',c:['Fine — ChatGPT is secure','Do not — must de-identify before using any AI tool','Okay if for education not commercial use'],ic:['❌','✅','❌'],w:['❌ ChatGPT may store data and does not guarantee medical-grade privacy.','✅ Always anonymize before inputting any data into AI tools.','❌ Purpose does not change the privacy risk.'],l:['PDPA — Personal Data Protection Act 2019','Fidelity — patient confidentiality','Hospital information security policy'],r:['🔒 Remove all identifying info before using AI','✍️ Use hypothetical data instead','📋 Consult hospital IT about AI policy'],qq:'Before using AI tools for nursing tasks, the most important step is:',qo:['Verify the AI has a good reputation','Remove all patient identifying information first','Obtain patient permission'],qc:1}},
+  {id:14,cat:'digital',correct:1,scores:[0,10,3],
+   cn:{th:'⚡ Fidelity ✖ ชัดเจน — Live streaming ใน ward ละเมิดความเป็นส่วนตัวของทุกคนในพื้นที่',en:'⚡ Fidelity ✖ clearly — live streaming in a ward violates privacy of everyone present'},
+   conflict:{au:[false,true,false],be:[false,true,false],nm:[false,true,false],ju:[false,true,false]},
+   th:{e:'📺',t:'Live Stream ในโรงพยาบาล',s:'เพื่อนนักศึกษา Live Facebook ระหว่าง ward round เพื่อให้เพื่อนที่ขาดเรียนได้ดู',c:['ดีมาก ช่วยเพื่อนที่ขาดเรียน','ไม่ถูก ต้องหยุดทันที','โอเค ถ้า zoom ใบหน้าผู้ป่วยออก'],ic:['❌','✅','⚠️'],w:['❌ Live ในพื้นที่ทางการแพทย์มีความเสี่ยงสูงมาก','✅ Live streaming ในโรงพยาบาลละเมิดความเป็นส่วนตัวของผู้ป่วยทุกคนในพื้นที่','⚠️ เสียงและข้อมูลอื่นยังคงรั่วไหลได้'],l:['พ.ร.บ.สุขภาพแห่งชาติ — ความเป็นส่วนตัวผู้ป่วย','PDPA — การบันทึกภาพบุคคลโดยไม่ได้รับอนุญาต','จรรยาบรรณวิชาชีพการพยาบาล'],r:['🛑 แจ้งเพื่อนให้หยุด Live ทันที','📖 อธิบายว่าเป็นการละเมิดความเป็นส่วนตัว','📹 แนะนำวิธีการเรียนรู้ที่เหมาะสมแทน'],qq:'Live streaming บน ward โรงพยาบาลละเมิดหลักจริยธรรมใด?',qo:['Autonomy เท่านั้น','Fidelity และ Non-maleficence','Beneficence เท่านั้น'],qc:1},
+   en:{e:'📺',t:'Live Streaming in Hospital',s:'A student nurse Facebook Lives a ward round so absent classmates can watch remotely.',c:['Great idea — helps absent students','Wrong — must stop immediately','Okay if patient faces are zoomed out'],ic:['❌','✅','⚠️'],w:['❌ Live streaming in clinical areas carries extreme privacy risks.','✅ Live streaming violates privacy of every patient in the area.','⚠️ Voices and other information can still be leaked.'],l:['National Health Act — patient privacy','PDPA — recording individuals without consent','Nursing Code of Ethics'],r:['🛑 Tell colleague to stop livestreaming immediately','📖 Explain this violates patient privacy','📹 Suggest appropriate learning alternatives'],qq:'Live streaming on a hospital ward violates which ethical principles?',qo:['Autonomy only','Fidelity and Non-maleficence','Beneficence only'],qc:1}},
+  {id:15,cat:'digital',correct:1,scores:[3,10,0],
+   cn:{th:'⚡ Fidelity ✔ ปะทะ Justice (ผู้ป่วยมีสิทธิแสดงความเห็น) — ให้ PR จัดการ ไม่ตอบเอง',en:'⚡ Fidelity ✔ vs Justice (patient has right to express) — let PR handle, do not respond yourself'},
+   conflict:{au:[false,true,false],be:[false,true,false],nm:[false,true,false],ju:[false,true,true]},
+   th:{e:'⭐',t:'รีวิวโรงพยาบาลออนไลน์',s:'คุณพบว่าผู้ป่วยโพสต์รีวิวลบบน Google ระบุชื่อพยาบาลและรายละเอียดการวินิจฉัยของตัวเอง',c:['ตอบกลับ online เพื่อแก้ไขข้อมูล','ไม่ตอบ แจ้งหัวหน้าและฝ่ายประชาสัมพันธ์','ขอให้ผู้ป่วยลบโพสต์'],ic:['⚠️','✅','❌'],w:['⚠️ การตอบกลับอาจเปิดเผยข้อมูลผู้ป่วยเพิ่มเติมโดยไม่ตั้งใจ','✅ ปล่อยให้ผู้มีอำนาจหน้าที่จัดการตามช่องทางที่เหมาะสม','❌ ผู้ป่วยมีสิทธิแสดงความเห็นเกี่ยวกับการรักษาของตัวเอง'],l:['PDPA — การจัดการข้อมูลส่วนบุคคลออนไลน์','หลัก Fidelity — รักษาความลับ','นโยบายการสื่อสารออนไลน์ของสถานพยาบาล'],r:['📢 แจ้งหัวหน้าและฝ่าย PR ทันที','🚫 ไม่ตอบกลับบน social media เอง','📋 บันทึกสถานการณ์ไว้เป็นหลักฐาน'],qq:'พยาบาลควรตอบกลับรีวิวลบของผู้ป่วยบน social media โดยตรงหรือไม่?',qo:['ได้ เพื่อแก้ไขความเข้าใจผิด','ไม่ควร ให้ฝ่ายที่เกี่ยวข้องจัดการ','ได้ ถ้าไม่เปิดเผยข้อมูลผู้ป่วย'],qc:1},
+   en:{e:'⭐',t:'Online Hospital Review',s:'A patient posts a negative Google review naming a nurse and detailing their own diagnosis.',c:['Respond online to correct the information','Do not respond — notify supervisor and PR department','Ask patient to delete the post'],ic:['⚠️','✅','❌'],w:['⚠️ Responding may inadvertently disclose additional patient information.','✅ Let authorized personnel handle through proper channels.','❌ The patient has the right to share opinions about their own care.'],l:['PDPA — managing personal data online','Fidelity — maintaining confidentiality','Hospital online communication policy'],r:['📢 Notify supervisor and PR department immediately','🚫 Do not respond on social media yourself','📋 Document the situation as evidence'],qq:'Should a nurse directly respond to a patient negative social media review?',qo:['Yes to correct misunderstandings','No let relevant departments handle it','Yes if no patient data is disclosed'],qc:1}},
+  {id:16,cat:'family',correct:1,scores:[0,10,3],
+   cn:{th:'⚡ Veracity ✔ ปะทะ Beneficence แพทย์ — ไม่โกหก แต่ redirect ถามแพทย์',en:'⚡ Veracity ✔ vs Doctor Beneficence — do not lie, redirect to doctor'},
+   conflict:{au:[false,true,false],be:[false,true,true],nm:[true,true,false],ju:[false,true,false]},
+   th:{e:'💬',t:'ครอบครัวขอให้ซ่อนความจริงจากผู้ป่วย',s:'แพทย์ตัดสินใจไม่บอกผู้ป่วยว่าป่วยเป็นมะเร็งระยะสุดท้าย ครอบครัวเห็นด้วย แต่ผู้ป่วยถามคุณโดยตรง',c:['โกหก บอกว่าแค่ป่วยธรรมดา','บอกว่าไม่สามารถให้ข้อมูลได้ และแนะนำให้ถามแพทย์','บอกความจริงทั้งหมดทันที'],ic:['❌','✅','⚠️'],w:['❌ ละเมิด Veracity อย่างชัดเจน','✅ ไม่โกหก แต่เคารพกระบวนการของแพทย์','⚠️ อาจขัดแผนการรักษาของแพทย์และสร้างความสับสน'],l:['หลัก Veracity — ความซื่อสัตย์','หลัก Autonomy — สิทธิรับข้อมูล','จรรยาบรรณ — ความซื่อสัตย์ในวิชาชีพ'],r:['💬 บอกผู้ป่วยว่าควรถามแพทย์โดยตรง','📢 แจ้งแพทย์ว่าผู้ป่วยถามคุณ','📝 บันทึกสถานการณ์นี้ไว้'],qq:'เมื่อผู้ป่วยถามความจริงที่แพทย์ยังไม่ได้บอก พยาบาลควรทำอย่างไร?',qo:['โกหกเพื่อปกป้องผู้ป่วย','บอกว่าควรถามแพทย์โดยตรง','บอกความจริงทุกอย่าง'],qc:1},
+   en:{e:'💬',t:'Family Wants to Hide Truth from Patient',s:'A doctor decides not to tell a patient they have terminal cancer. The family agrees. The patient asks you directly.',c:['Lie — tell them it is a minor illness','Say you cannot provide that information and suggest asking the doctor','Tell the full truth immediately'],ic:['❌','✅','⚠️'],w:['❌ Clearly violates Veracity.','✅ Do not lie but respect the physician process.','⚠️ May disrupt the care plan and cause confusion.'],l:['Veracity — honesty as an ethical principle','Autonomy — right to receive information','Code of Ethics — professional honesty'],r:['💬 Tell patient they should ask the doctor directly','📢 Inform doctor that patient asked you','📝 Document this situation'],qq:'When a patient asks a truth the doctor has not disclosed yet the nurse should:',qo:['Lie to protect the patient','Direct them to ask the doctor directly','Tell them everything immediately'],qc:1}},
+  {id:17,cat:'family',correct:1,scores:[3,10,8],
+   cn:{th:'⚡ Fidelity (HIV confidentiality) ✔ ปะทะ Non-maleficence (คู่ครองอาจติดเชื้อ) — กรณีซับซ้อน ต้องปรึกษาทีม',en:'⚡ Fidelity (HIV confidentiality) ✔ vs Non-maleficence (partner may be infected) — complex case must consult team'},
+   conflict:{au:[false,true,true],be:[false,true,true],nm:[false,true,true],ju:[false,true,true]},
+   th:{e:'🔐',t:'ผู้ป่วยขอให้ปิดข้อมูล HIV จากสามี',s:'ผู้ป่วยผล HIV+ ขอให้คุณไม่บอกสามีของเธอ แต่คุณกังวลว่าสามีอาจติดเชื้อโดยไม่รู้ตัว',c:['บอกสามีทันทีเพื่อความปลอดภัยของเขา','ไม่บอก เคารพความลับผู้ป่วย และแนะนำให้เธอบอกเอง','บอกแพทย์และให้แพทย์ตัดสินใจ'],ic:['⚠️','✅','✅'],w:['⚠️ ละเมิด Fidelity แม้มีเจตนาดี ต้องผ่านกระบวนการที่ถูกต้อง','✅ รักษาความลับผู้ป่วย พร้อมให้คำแนะนำ','✅ ดี — เป็นกรณีที่ต้องใช้ดุลยพินิจของทีม'],l:['พ.ร.บ.โรคติดต่อ — หน้าที่รายงานโรคติดต่อ','หลัก Fidelity — ความลับ','หลัก Non-maleficence — ป้องกันอันตรายผู้อื่น'],r:['🤝 ให้คำปรึกษาผู้ป่วยเรื่องการบอกคู่ครอง','👨‍⚕️ ปรึกษาแพทย์และทีม','📋 บันทึกการให้คำปรึกษา'],qq:'การรักษาความลับผู้ป่วยมีข้อยกเว้นในกรณีใด?',qo:['ไม่มีข้อยกเว้นเลย','เมื่อมีความเสี่ยงอันตรายร้ายแรงต่อผู้อื่น','เมื่อครอบครัวขอทราบ'],qc:1},
+   en:{e:'🔐',t:'Patient Requests HIV Info Hidden from Spouse',s:'A patient tests HIV positive and asks you not to tell her husband. You are concerned he may be unknowingly exposed.',c:['Tell the husband immediately for his safety','Maintain confidentiality and counsel patient to disclose herself','Tell the doctor and let them decide'],ic:['⚠️','✅','✅'],w:['⚠️ Violates Fidelity even with good intentions must follow proper process.','✅ Maintain patient confidentiality while providing counseling.','✅ Good — this case requires team judgment.'],l:['Communicable Disease Act — mandatory reporting duty','Fidelity — patient confidentiality','Non-maleficence — preventing harm to others'],r:['🤝 Counsel patient on disclosing to partner','👨‍⚕️ Consult doctor and team','📋 Document the counseling session'],qq:'Patient confidentiality has exceptions when:',qo:['Never — no exceptions exist','There is serious imminent danger to others','Family members request the information'],qc:1}},
+  {id:18,cat:'family',correct:1,scores:[3,10,5],
+   cn:{th:'⚡ กฎ (ห้ามเข้านอกเวลา) ปะทะ Beneficence+Caring (ความต้องการมนุษยธรรม) — ยืดหยุ่นด้วยดุลยพินิจ',en:'⚡ Rules (no-visit outside hours) vs Beneficence+Caring (humanitarian need) — flexible judgment'},
+   conflict:{au:[false,true,false],be:[false,true,true],nm:[true,true,false],ju:[false,true,false]},
+   th:{e:'👥',t:'ญาติขอเยี่ยมนอกเวลา ICU',s:'ญาติผู้ป่วย ICU ร้องไห้ขอเข้าเยี่ยมนอกเวลา บอกว่า "ขอดูครั้งสุดท้าย" แต่กฎของวอร์ดไม่อนุญาต',c:['ปฏิเสธ ทำตามกฎวอร์ดอย่างเคร่งครัด','ประเมินสถานการณ์ ปรึกษาหัวหน้า อาจยืดหยุ่นได้','ให้เข้าได้เลย ใจดีกว่า'],ic:['⚠️','✅','⚠️'],w:['⚠️ อาจโหดเกินไป — กฎมีข้อยกเว้นด้านมนุษยธรรม','✅ ใช้ดุลยพินิจ ยืดหยุ่นอย่างมีเหตุผล','⚠️ เสี่ยง — ต้องผ่านการพิจารณาก่อน'],l:['หลัก Beneficence — ประโยชน์สูงสุดของผู้ป่วยและครอบครัว','หลัก Caring — การดูแลด้วยความเห็นอกเห็นใจ','ระเบียบเยี่ยมผู้ป่วย ICU'],r:['🤝 ฟังความต้องการของครอบครัวด้วยความเห็นใจ','📢 ปรึกษาหัวหน้าก่อนอนุญาต','⏱️ กำหนดเวลาและเงื่อนไขที่ชัดเจน'],qq:'หลักจริยธรรมใดสนับสนุนการใช้ดุลยพินิจอย่างยืดหยุ่นในกรณีนี้?',qo:['Justice + Non-maleficence','Beneficence + Caring','Veracity + Fidelity'],qc:1},
+   en:{e:'👥',t:'Family Requesting Extended ICU Visit',s:'An ICU patient family is crying requesting a visit outside visiting hours. They say just one last look.',c:['Refuse — strictly follow ward rules','Assess the situation consult supervisor consider flexibility','Let them in immediately — it is kinder'],ic:['⚠️','✅','⚠️'],w:['⚠️ May be too rigid — rules have humanitarian exceptions.','✅ Use professional judgment with flexibility and reason.','⚠️ Risky — must be considered properly not decided unilaterally.'],l:['Beneficence — maximum benefit for patient and family','Caring — compassionate care','ICU visiting regulations'],r:['🤝 Listen to family needs empathetically','📢 Consult supervisor before allowing access','⏱️ Set clear time and conditions'],qq:'Which ethical principles support flexible judgment in this situation?',qo:['Justice + Non-maleficence','Beneficence + Caring','Veracity + Fidelity'],qc:1}},
+  {id:19,cat:'family',correct:1,scores:[0,10,5],
+   cn:{th:'⚡ Autonomy ผู้ป่วย (DNR) ✔ ปะทะ Beneficence ครอบครัว — DNR เป็นเอกสารกฎหมาย Autonomy ชนะ',en:'⚡ Patient Autonomy (DNR) ✔ vs Family Beneficence — DNR is a legal document Autonomy wins'},
+   conflict:{au:[false,true,false],be:[false,true,false],nm:[true,true,false],ju:[false,true,false]},
+   th:{e:'📜',t:'DNR ปะทะความต้องการครอบครัว',s:'ผู้ป่วยสูงอายุทำ DNR ไว้ล่วงหน้า แต่เมื่อหัวใจหยุดเต้น ลูกๆ ร้องขอให้ช่วยชีวิตทุกวิถีทาง',c:['ทำ CPR ตามที่ลูกขอ','เคารพเอกสาร DNR ของผู้ป่วย','รอแพทย์มาตัดสินใจก่อน'],ic:['❌','✅','⚠️'],w:['❌ ละเมิด Autonomy ของผู้ป่วยที่แสดงความประสงค์ไว้ล่วงหน้า','✅ DNR เป็นเอกสารทางกฎหมายที่ต้องเคารพ','⚠️ เสี่ยง — ถ้ายังไม่มีแพทย์ต้องยึดเอกสาร DNR'],l:['พ.ร.บ.สุขภาพแห่งชาติ มาตรา 12 — สิทธิปฏิเสธการรักษา','หลัก Autonomy — ความประสงค์ล่วงหน้า','Living Will และ Advanced Directive'],r:['📜 ยึดถือเอกสาร DNR','💙 ให้การสนับสนุนครอบครัวด้วยความเห็นใจ','📢 แจ้งแพทย์ทันที'],qq:'DNR (Do Not Resuscitate) มีผลทางกฎหมายอย่างไร?',qo:['เป็นแค่คำแนะนำ ครอบครัวยกเลิกได้','เป็นเอกสารทางกฎหมายที่ต้องปฏิบัติตาม','ต้องรอแพทย์ยืนยันทุกครั้ง'],qc:1},
+   en:{e:'📜',t:'DNR vs Family Wishes',s:'An elderly patient has a signed DNR. When their heart stops the children beg you to do everything to save them.',c:['Perform CPR as the children request','Honor the patient DNR document','Wait for the doctor to decide'],ic:['❌','✅','⚠️'],w:['❌ Violates patient Autonomy as expressed in their advance directive.','✅ DNR is a legal document that must be respected.','⚠️ May cause dangerous delay if no doctor present follow DNR.'],l:['National Health Act Section 12 — right to refuse treatment','Autonomy — advance directives','Living Will and Advanced Directive framework'],r:['📜 Honor the DNR document','💙 Provide compassionate support to family','📢 Notify physician immediately'],qq:'A DNR (Do Not Resuscitate) order:',qo:['Is just advice — family can override','Is a legal document that must be followed','Requires doctor confirmation each time'],qc:1}},
+  {id:20,cat:'team',correct:1,scores:[0,10,7],
+   cn:{th:'⚡ Advocacy ✔ ปะทะ Team Harmony — Advocacy มาก่อน พูดกับรุ่นพี่ก่อนรายงาน',en:'⚡ Advocacy ✔ vs Team Harmony — Advocacy first speak politely to senior before reporting'},
+   conflict:{au:[false,true,true],be:[false,true,true],nm:[false,true,true],ju:[false,true,true]},
+   th:{e:'👁️',t:'เห็นพฤติกรรมผิดจรรยาบรรณของรุ่นพี่',s:'คุณเห็นพยาบาลรุ่นพี่พูดจาดูถูกผู้ป่วยสูงอายุขณะให้การดูแล',c:['เพิกเฉย กลัวกระทบความสัมพันธ์','พูดคุยกับรุ่นพี่ก่อนอย่างสุภาพ ถ้าไม่ดีขึ้นให้รายงาน','รายงานทันทีโดยไม่พูดกับรุ่นพี่'],ic:['❌','✅','⚠️'],w:['❌ การเพิกเฉยส่งเสริมวัฒนธรรมที่ยอมรับพฤติกรรมไม่เหมาะสม','✅ ให้โอกาสแก้ไข แต่ไม่ยอมรับพฤติกรรมนั้น','⚠️ การพูดคุยก่อนมักได้ผลดีกว่าในระยะยาว'],l:['จรรยาบรรณวิชาชีพ — หน้าที่รายงานพฤติกรรมผิดจรรยาบรรณ','หลัก Justice — ผู้ป่วยทุกคนควรได้รับการดูแลด้วยศักดิ์ศรี','พ.ร.บ.วิชาชีพการพยาบาลฯ'],r:['💬 พูดคุยกับรุ่นพี่อย่างสุภาพ','📝 บันทึกพฤติกรรมที่สังเกตเห็น','📢 รายงานถ้าพฤติกรรมไม่เปลี่ยนแปลง'],qq:'หน้าที่ของพยาบาลในการรายงานพฤติกรรมผิดจรรยาบรรณเรียกว่าอะไร?',qo:['Advocacy','Whistleblowing / Accountability','Caring'],qc:1},
+   en:{e:'👁️',t:'Witnessing Senior Unethical Behavior',s:'You witness a senior nurse speaking disrespectfully to an elderly patient during care.',c:['Ignore it — afraid of affecting the relationship','Speak to senior politely first escalate if no improvement','Report immediately without speaking to the senior'],ic:['❌','✅','⚠️'],w:['❌ Ignoring promotes a culture that accepts inappropriate behavior.','✅ Give opportunity to self-correct but do not accept the behavior.','⚠️ Better than A but speaking first often yields better outcomes.'],l:['Code of Ethics — duty to report unethical behavior','Justice — every patient deserves dignified care','Nursing Profession Act'],r:['💬 Speak with senior politely and directly','📝 Document the behavior you observed','📢 Report if behavior does not change'],qq:'A nurse duty to report unethical behavior is related to:',qo:['Advocacy','Whistleblowing / Accountability','Caring'],qc:1}},
+  {id:21,cat:'team',correct:1,scores:[0,10,0],
+   cn:{th:'⚡ Non-maleficence (แพทย์อาจบกพร่องขณะทำหน้าที่) ✔ ปะทะ Professional Courtesy — Non-maleficence ชนะ',en:'⚡ Non-maleficence (impaired physician poses risk) ✔ vs Professional Courtesy — Non-maleficence wins'},
+   conflict:{au:[false,true,false],be:[false,true,false],nm:[false,true,false],ju:[false,true,false]},
+   th:{e:'🍺',t:'สงสัยว่าแพทย์ดื่มแอลกอฮอล์ก่อนตรวจ',s:'คุณสังเกตว่าแพทย์มีกลิ่นแอลกอฮอล์และพฤติกรรมผิดปกติก่อนจะเข้าตรวจผู้ป่วย',c:['เพิกเฉย ไม่ใช่หน้าที่','แจ้งหัวหน้าพยาบาลทันทีก่อนแพทย์เข้าตรวจ','ถามแพทย์โดยตรงต่อหน้าผู้ป่วย'],ic:['❌','✅','❌'],w:['❌ ละเมิด Non-maleficence อย่างชัดเจน','✅ ปกป้องผู้ป่วยผ่านช่องทางที่เหมาะสมอย่างเร่งด่วน','❌ อาจสร้างความอับอายและขัดขวางการรักษา'],l:['หลัก Non-maleficence — ป้องกันอันตรายต่อผู้ป่วย','ความรับผิดชอบทางวิชาชีพ','มาตรฐานความปลอดภัยในการดูแลผู้ป่วย'],r:['🚨 แจ้งหัวหน้าพยาบาลทันที','📝 บันทึกการสังเกตอย่างละเอียด','🔒 ไม่ให้แพทย์เข้าตรวจผู้ป่วยก่อนได้รับการพิจารณา'],qq:'การเพิกเฉยต่อบุคลากรสาธารณสุขที่อาจบกพร่องขณะทำหน้าที่ละเมิดหลักจริยธรรมใด?',qo:['Autonomy','Non-maleficence','Justice'],qc:1},
+   en:{e:'🍺',t:'Nurse Suspects Doctor is Impaired',s:'You notice a physician smells of alcohol and behaves unusually before entering a patient room.',c:['Ignore it — not your responsibility','Alert head nurse immediately before the doctor sees the patient','Confront the doctor directly in front of the patient'],ic:['❌','✅','❌'],w:['❌ Clearly violates Non-maleficence.','✅ Protect the patient urgently through appropriate channels.','❌ May cause embarrassment and interfere with care.'],l:['Non-maleficence — preventing patient harm','Professional accountability','Patient safety standards'],r:['🚨 Alert head nurse immediately','📝 Document your observations in detail','🔒 Keep physician from seeing patients until assessed'],qq:'Ignoring a potentially impaired healthcare worker violates which principle?',qo:['Autonomy','Non-maleficence','Justice'],qc:1}},
+  {id:22,cat:'team',correct:1,scores:[0,10,0],
+   cn:{th:'⚡ Moral Courage ✔ ปะทะ Hierarchy — ทุกคนในทีมมีหน้าที่พูดเพื่อความปลอดภัยผู้ป่วย',en:'⚡ Moral Courage ✔ vs Hierarchy — everyone has duty to speak up for patient safety'},
+   conflict:{au:[true,true,true],be:[false,true,true],nm:[false,true,false],ju:[false,true,false]},
+   th:{e:'🗣️',t:'ทีมมีความเห็นไม่ตรงกันในการรักษา',s:'ในที่ประชุมทีม คุณเห็นว่าแผนการรักษาผู้ป่วยมีความเสี่ยงที่ทีมอื่นมองข้ามไป แต่คุณเป็นคนใหม่',c:['เงียบ เพราะเป็นคนใหม่','แสดงความเห็นอย่างสุภาพพร้อมเหตุผล','ออกจากห้องประชุมเพราะไม่เห็นด้วย'],ic:['❌','✅','❌'],w:['❌ ทุกคนในทีมมีหน้าที่พูดเพื่อความปลอดภัยผู้ป่วย','✅ Moral Courage เป็นคุณสมบัติผู้นำที่ต้องพัฒนา','❌ การหลีกเลี่ยงไม่ใช่การแก้ปัญหา'],l:['จรรยาบรรณวิชาชีพ — Advocacy','หลัก Beneficence — ประโยชน์สูงสุดผู้ป่วย','มาตรฐานความปลอดภัยทีมสุขภาพ'],r:['💬 เตรียมข้อมูลก่อนแสดงความเห็น','🙏 พูดด้วยความสุภาพและเป็นมืออาชีพ','📝 บันทึกข้อกังวลไว้เป็นหลักฐาน'],qq:'ใครมีหน้าที่พูดเพื่อความปลอดภัยผู้ป่วยในทีมสุขภาพ?',qo:['เฉพาะแพทย์เท่านั้น','ทุกคนในทีมรวมถึงนักศึกษา','เฉพาะหัวหน้าทีม'],qc:1},
+   en:{e:'🗣️',t:'Team Disagreement on Treatment Plan',s:'In a team meeting you see a risk in the treatment plan others have missed. You are the newest team member.',c:['Stay quiet — you are new','Share your concern politely with reasoning','Leave the meeting because you disagree'],ic:['❌','✅','❌'],w:['❌ Everyone on the team has a duty to speak up for patient safety.','✅ Moral Courage is a leadership quality all nurses must develop.','❌ Avoidance does not solve the problem.'],l:['Code of Ethics — Advocacy','Beneficence — maximum patient benefit','Healthcare team safety standards'],r:['💬 Prepare your information before speaking','🙏 Speak politely and professionally','📝 Document your concern as evidence'],qq:'Who has a duty to speak up for patient safety in a healthcare team?',qo:['Physicians only','Everyone on the team including students','Team leaders only'],qc:1}},
+  {id:23,cat:'team',correct:1,scores:[0,10,0],
+   cn:{th:'⚡ Non-maleficence (ป้องกันอันตรายจากคนไม่มีทักษะ) ✔ ปะทะ Obedience — รู้ขอบเขตตัวเองคือจริยธรรม',en:'⚡ Non-maleficence (prevent harm from unskilled practitioner) ✔ vs Obedience — knowing your limits IS ethics'},
+   conflict:{au:[false,true,false],be:[false,true,false],nm:[false,true,false],ju:[false,true,false]},
+   th:{e:'🚫',t:'รับงานเกินความสามารถ',s:'หัวหน้ามอบหมายหัตถการที่คุณไม่เคยทำและยังไม่ได้รับการฝึกอบรม โดยบอกว่า "ดูจาก YouTube แล้วทำได้เลย"',c:['ทำได้ ดู YouTube แล้ว','ปฏิเสธอย่างสุภาพ ชี้แจงว่าเกินขอบเขตการฝึก','ทำแต่ไม่บอกใครว่าไม่เคยทำ'],ic:['❌','✅','❌'],w:['❌ YouTube ไม่ใช่การฝึกอบรมทางการแพทย์ที่ผ่านการรับรอง','✅ การรู้ขอบเขตตัวเองคือจริยธรรม ไม่ใช่ความขี้เกียจ','❌ อันตรายมาก — ผู้ป่วยเสี่ยงอันตรายจากผู้ไม่มีทักษะ'],l:['พ.ร.บ.วิชาชีพการพยาบาลฯ — ขอบเขตการปฏิบัติ','หลัก Non-maleficence — ป้องกันอันตราย','ความรับผิดชอบทางวิชาชีพ'],r:['🚫 ปฏิเสธงานที่เกินขอบเขตความสามารถ','📢 แจ้งหัวหน้าและขอการฝึกอบรมที่เหมาะสม','📝 บันทึกการปฏิเสธและเหตุผล'],qq:'การปฏิเสธงานที่เกินขอบเขตความสามารถเกี่ยวข้องกับหลักจริยธรรมใด?',qo:['Autonomy','Veracity + Non-maleficence','Justice'],qc:1},
+   en:{e:'🚫',t:'Assigned Beyond Competence',s:'A supervisor assigns you a procedure you have never performed and are not trained in saying just watch YouTube and do it.',c:['Do it — watched YouTube already','Politely refuse explain it is beyond your training scope','Do it but do not tell anyone you have never done it'],ic:['❌','✅','❌'],w:['❌ YouTube is not accredited medical training.','✅ Knowing your limits is ethics not laziness.','❌ Very dangerous — patient at serious risk from under-skilled practitioner.'],l:['Nursing Profession Act — scope of practice','Non-maleficence — preventing harm','Professional accountability'],r:['🚫 Refuse tasks beyond your competence','📢 Notify supervisor and request appropriate training','📝 Document your refusal and reason'],qq:'Refusing tasks beyond your competence relates to which principles?',qo:['Autonomy','Veracity + Non-maleficence','Justice'],qc:1}},
+  {id:24,cat:'team',correct:1,scores:[0,10,7],
+   cn:{th:'⚡ Veracity (ความซื่อสัตย์ในบันทึก) ✔ ปะทะ Convenience — การปลอมแปลงบันทึกเป็นความผิดทางอาญา',en:'⚡ Veracity (honesty in records) ✔ vs Convenience — falsifying records is a criminal offense'},
+   conflict:{au:[false,true,false],be:[false,true,false],nm:[false,true,false],ju:[false,true,false]},
+   th:{e:'📝',t:'บันทึกทางการพยาบาลไม่ถูกต้อง',s:'คุณลืมบันทึกการให้ยาผู้ป่วย 2 ชั่วโมงที่แล้ว เพื่อนแนะนำให้แก้เวลาให้ดูเหมือนบันทึกทันเวลา',c:['แก้เวลาตามที่เพื่อนแนะนำ','บันทึกตอนนี้พร้อมระบุว่าเป็น late entry','ปล่อยไว้ไม่บันทึก'],ic:['❌','✅','❌'],w:['❌ การปลอมแปลงบันทึกเป็นความผิดทางกฎหมายและจรรยาบรรณ','✅ Late entry เป็นวิธีที่ถูกต้องตามมาตรฐาน','❌ บันทึกไม่ครบถ้วนเป็นความผิดทางวิชาชีพ'],l:['พ.ร.บ.วิชาชีพการพยาบาลฯ — มาตรฐานการบันทึก','หลัก Veracity — ความซื่อสัตย์ในการบันทึก','ความรับผิดชอบทางกฎหมายของพยาบาล'],r:['✍️ บันทึก Late entry ทันทีพร้อมระบุเหตุผล','📝 อธิบายสถานการณ์อย่างตรงไปตรงมา','📢 แจ้งหัวหน้าถ้าเกิดผลกระทบต่อผู้ป่วย'],qq:'Late entry ในบันทึกทางการพยาบาลคืออะไร?',qo:['การปลอมแปลงบันทึก','การบันทึกย้อนหลังอย่างถูกต้องพร้อมระบุเหตุผล','การลบข้อมูลเก่าและบันทึกใหม่'],qc:1},
+   en:{e:'📝',t:'Inaccurate Nursing Documentation',s:'You forgot to document a medication 2 hours ago. A colleague suggests backdating the record to look timely.',c:['Backdate as suggested','Document now as a late entry with explanation','Leave it undocumented'],ic:['❌','✅','❌'],w:['❌ Falsifying records is illegal and a serious ethical violation.','✅ Late entry with notation is the proper professional standard.','❌ Incomplete documentation is a professional offense.'],l:['Nursing Profession Act — documentation standards','Veracity — honesty in record-keeping','Nurse legal accountability'],r:['✍️ Document as Late entry immediately with reason','📝 Explain the situation transparently','📢 Notify supervisor if it affected patient care'],qq:'What is a late entry in nursing documentation?',qo:['Falsifying a record','Properly backdated entry with reason noted','Deleting old data and re-entering'],qc:1}},
+  {id:25,cat:'legal',correct:1,scores:[0,10,3],
+   cn:{th:'⚡ Fidelity ✔ ปะทะ Justice (สื่อมีสิทธิรายงาน) — Fidelity ชนะ แม้บุคคลสาธารณะ',en:'⚡ Fidelity ✔ vs Justice (media has right to report) — Fidelity wins even for public figures'},
+   conflict:{au:[false,true,false],be:[false,true,false],nm:[false,true,false],ju:[false,true,false]},
+   th:{e:'📰',t:'พยาบาลและสื่อมวลชน',s:'นักข่าวโทรมาถามข้อมูลเกี่ยวกับผู้ป่วยชื่อดังที่อยู่ในโรงพยาบาล',c:['บอกได้ เพราะเป็นข่าวสาธารณประโยชน์','ปฏิเสธและแนะนำให้ติดต่อฝ่ายประชาสัมพันธ์','บอกเฉพาะว่า "ผู้ป่วยยังอยู่ในโรงพยาบาล"'],ic:['❌','✅','❌'],w:['❌ ความเป็นคนมีชื่อเสียงไม่ลดความเป็นส่วนตัว','✅ ทุกข้อมูลผู้ป่วยเป็นความลับ แม้เป็นบุคคลสาธารณะ','❌ แม้แต่การยืนยันว่าผู้ป่วยอยู่ที่ไหนก็เป็นการเปิดเผยข้อมูล'],l:['พ.ร.บ.สุขภาพแห่งชาติ — ความลับผู้ป่วย','หลัก Fidelity — รักษาความลับทุกราย','นโยบายการสื่อสารกับสื่อมวลชนของโรงพยาบาล'],r:['🚫 ปฏิเสธให้ข้อมูลทุกอย่าง','📢 แจ้งฝ่าย PR ทันที','📋 บันทึกการโทรและเนื้อหา'],qq:'พยาบาลควรให้ข้อมูลใดกับสื่อมวลชนได้บ้าง?',qo:['ข้อมูลทั่วไปที่ไม่ระบุตัวตน','ไม่มีเลย ให้ฝ่ายประชาสัมพันธ์จัดการ','ข้อมูลที่ผู้ป่วยยินยอม'],qc:1},
+   en:{e:'📰',t:'Nurses and the Media',s:'A journalist calls asking for information about a celebrity patient in your hospital.',c:['Share — it is in the public interest','Decline and direct them to the PR department','Just confirm the patient is in the hospital'],ic:['❌','✅','❌'],w:['❌ Being famous does not reduce a patient right to privacy.','✅ All patient information is confidential even for public figures.','❌ Even confirming location is disclosing patient information.'],l:['National Health Act — patient confidentiality','Fidelity — confidentiality for every patient','Hospital media communication policy'],r:['🚫 Decline all information requests','📢 Notify PR department immediately','📋 Document the call and its content'],qq:'What information can a nurse share with media?',qo:['General non-identifying information','None — let PR department handle it','Information the patient has consented to share'],qc:1}},
+  {id:26,cat:'legal',correct:1,scores:[0,10,3],
+   cn:{th:'⚡ Non-maleficence ✔ ปะทะ Beneficence (ผู้ป่วยต้องการดูแล) — ต้องมีผู้กำกับเสมอ',en:'⚡ Non-maleficence ✔ vs Beneficence (patient needs care) — supervision always required'},
+   conflict:{au:[false,true,false],be:[false,true,false],nm:[false,true,false],ju:[false,true,false]},
+   th:{e:'🎓',t:'ขอบเขตนักศึกษาพยาบาล',s:'ขณะฝึกงานผู้ป่วยขอให้คุณ (นักศึกษา) ดูแลคนเดียวโดยไม่มีพยาบาลประจำการกำกับ',c:['ดูแลได้ คนไข้ไว้วางใจเรา','ปฏิเสธ ต้องมีพยาบาลประจำการกำกับเสมอ','ดูแลแต่โทรหาพยาบาลถ้ามีปัญหา'],ic:['❌','✅','⚠️'],w:['❌ นักศึกษาไม่มีใบอนุญาตและต้องอยู่ภายใต้การกำกับ','✅ กฎหมายกำหนดชัดเจนว่านักศึกษาต้องมีผู้กำกับ','⚠️ เสี่ยง — ถ้ามีปัญหาอาจสายเกินไป'],l:['พ.ร.บ.วิชาชีพการพยาบาลฯ — ขอบเขตนักศึกษา','ความรับผิดชอบของสถาบันการศึกษา','มาตรฐานการฝึกงานทางคลินิก'],r:['🚫 ปฏิเสธอย่างสุภาพและอธิบายเหตุผล','📢 แจ้งพยาบาลประจำการทันที','📋 บันทึกสถานการณ์'],qq:'นักศึกษาพยาบาลสามารถปฏิบัติงานโดยอิสระได้หรือไม่?',qo:['ได้ ถ้ามีทักษะพอ','ไม่ได้ ต้องอยู่ภายใต้การกำกับตลอด','ได้ ถ้าผู้ป่วยยินยอม'],qc:1},
+   en:{e:'🎓',t:'Scope of Nursing Student Practice',s:'During clinical placement a patient asks you as student nurse to care for them alone without a registered nurse supervising.',c:['Provide care — the patient trusts you','Decline — must always have a registered nurse supervisor','Care for them but call a nurse if problems arise'],ic:['❌','✅','⚠️'],w:['❌ Students have no license and must be supervised at all times.','✅ Law clearly requires student supervision by a registered nurse.','⚠️ Risky — if problems arise may be too late.'],l:['Nursing Profession Act — student scope of practice','Educational institution responsibility','Clinical training standards'],r:['🚫 Politely decline and explain why','📢 Notify a registered nurse immediately','📋 Document the situation'],qq:'Can a nursing student practice independently?',qo:['Yes if skilled enough','No must be supervised at all times','Yes if patient consents'],qc:1}},
+  {id:27,cat:'legal',correct:1,scores:[0,10,3],
+   cn:{th:'⚡ Non-maleficence ✔ ปะทะ Justice (กระบวนการที่ถูกต้อง) — บันทึกและแจ้งผู้บังคับบัญชาเสมอ',en:'⚡ Non-maleficence ✔ vs Justice (proper process) — document and notify supervisor always'},
+   conflict:{au:[false,true,false],be:[false,true,false],nm:[false,true,false],ju:[false,true,true]},
+   th:{e:'⚖️',t:'ผู้ป่วยขู่จะฟ้อง',s:'ผู้ป่วยบอกว่าจะฟ้องคุณเพราะรู้สึกว่าได้รับการดูแลไม่ดี คุณเชื่อว่าทำถูกต้องแล้วทุกอย่าง',c:['โต้เถียงกับผู้ป่วยทันที','สงบ ฟัง บันทึกทุกอย่าง แจ้งหัวหน้าและฝ่ายกฎหมาย','ขอโทษและยอมรับทุกอย่างเพื่อยุติเรื่อง'],ic:['❌','✅','⚠️'],w:['❌ สร้างความขัดแย้งและอาจเป็นหลักฐานไม่ดี','✅ ปกป้องตัวเองและผู้ป่วยผ่านกระบวนการที่ถูกต้อง','⚠️ การยอมรับโดยไม่มีข้อเท็จจริงอาจเพิ่มความรับผิด'],l:['ความรับผิดทางแพ่งของพยาบาล','พ.ร.บ.ความรับผิดทางละเมิดของเจ้าหน้าที่ 2539','มาตรฐานการบันทึกเพื่อการป้องกันตัวทางกฎหมาย'],r:['😌 รักษาความสงบและฟังด้วยความเห็นใจ','📝 บันทึกทุกอย่างทันที','📢 แจ้งหัวหน้าและฝ่ายกฎหมายโดยเร็ว'],qq:'เมื่อถูกร้องเรียน สิ่งแรกที่พยาบาลควรทำคืออะไร?',qo:['โต้เถียงเพื่อแก้ต่าง','บันทึกข้อเท็จจริงและแจ้งผู้บังคับบัญชา','ขอโทษและจ่ายค่าชดเชย'],qc:1},
+   en:{e:'⚖️',t:'Patient Threatens Lawsuit',s:'A patient says they will sue you claiming poor care. You believe you did everything correctly.',c:['Argue with the patient immediately','Stay calm listen document everything notify supervisor and legal team','Apologize and accept blame to end the conflict'],ic:['❌','✅','⚠️'],w:['❌ Creates confrontation and may create unfavorable evidence.','✅ Protect yourself and patient through proper process.','⚠️ Admitting fault without facts may increase liability.'],l:['Civil liability of nurses','Government Official Tort Liability Act 1996','Nursing documentation standards for legal protection'],r:['😌 Stay calm and listen empathetically','📝 Document everything immediately','📢 Notify supervisor and legal team promptly'],qq:'When facing a complaint the nurse first action should be:',qo:['Argue to defend yourself','Document facts and notify supervisor','Apologize and offer compensation'],qc:1}},
+  {id:28,cat:'legal',correct:1,scores:[0,10,3],
+   cn:{th:'⚡ Autonomy ผู้ป่วยที่มีสติ ✔ — มีสิทธิปฏิเสธการรักษา ผูกพันตามกฎหมาย',en:'⚡ Competent Patient Autonomy ✔ — right to refuse is legally binding'},
+   conflict:{au:[false,true,false],be:[false,true,false],nm:[true,true,false],ju:[false,true,false]},
+   th:{e:'🙅',t:'ผู้ป่วยปฏิเสธการรักษา',s:'ผู้ป่วยมะเร็งระยะสุดท้ายปฏิเสธเคมีบำบัดทั้งที่แพทย์แนะนำ ครอบครัวขอให้คุณโน้มน้าว',c:['โน้มน้าวตามที่ครอบครัวขอ','เคารพการตัดสินใจ แต่ให้ข้อมูลครบถ้วน','ไม่พูดอะไร เป็นเรื่องของแพทย์'],ic:['❌','✅','⚠️'],w:['❌ ละเมิด Autonomy ของผู้ป่วยที่มีสิทธิตัดสินใจเอง','✅ เคารพสิทธิ ให้ข้อมูล แต่ไม่บังคับ','⚠️ พยาบาลมีหน้าที่ให้ข้อมูลและสนับสนุนผู้ป่วย ไม่ใช่เงียบ'],l:['พ.ร.บ.สุขภาพแห่งชาติ — สิทธิผู้ป่วยปฏิเสธการรักษา','หลัก Autonomy — เสรีภาพในการตัดสินใจ','จรรยาบรรณ — Advocacy ปกป้องสิทธิผู้ป่วย'],r:['💬 อธิบายสิทธิผู้ป่วยให้ครอบครัวเข้าใจ','📝 บันทึกการตัดสินใจของผู้ป่วย','👨‍⚕️ แจ้งแพทย์เพื่อสื่อสารกับครอบครัว'],qq:'ผู้ป่วยที่มีสติสัมปชัญญะสมบูรณ์ปฏิเสธการรักษา พยาบาลควรทำอย่างไร?',qo:['โน้มน้าวให้ยอมรับการรักษา','เคารพการตัดสินใจและให้ข้อมูลเพิ่มเติม','รายงานแพทย์และปล่อยให้แพทย์จัดการ'],qc:1},
+   en:{e:'🙅',t:'Patient Refusal of Treatment',s:'A terminal cancer patient refuses chemotherapy despite medical advice. The family asks you to persuade them.',c:['Persuade them as family requests','Respect decision ensure full information given','Stay silent — it is the doctor matter'],ic:['❌','✅','⚠️'],w:['❌ Overriding a competent patient decision violates Autonomy.','✅ Respect rights provide information never coerce.','⚠️ Insufficient — nurses have a duty to inform and advocate.'],l:['National Health Act — patient right to refuse','Autonomy — right to self-determination','Code of Ethics — Advocacy for patient rights'],r:['💬 Explain patient rights to family','📝 Document patient decision in medical record','👨‍⚕️ Inform physician to assist family communication'],qq:'A mentally competent patient refuses treatment. What should the nurse do?',qo:['Persuade them to accept','Respect decision and provide full information','Report to doctor and step back'],qc:1}},
+  {id:29,cat:'legal',correct:1,scores:[0,10,0],
+   cn:{th:'⚡ Autonomy วิจัย ✔ ปะทะ Beneficence — PDPA + IRB กำหนดชัด: ต้องมี consent เสมอ',en:'⚡ Research Autonomy ✔ vs Beneficence — PDPA + IRB clear consent always required'},
+   conflict:{au:[false,true,true],be:[false,true,true],nm:[false,true,false],ju:[false,true,false]},
+   th:{e:'🔬',t:'ขอบเขตนักศึกษาและการวิจัย',s:'อาจารย์ขอให้คุณ (นักศึกษา) เก็บข้อมูลผู้ป่วยสำหรับงานวิจัยโดยไม่แจ้งให้ผู้ป่วยทราบ เพราะ "เสียเวลา"',c:['ทำตามอาจารย์ เพราะเป็นงานวิจัย','ปฏิเสธ ต้องได้ consent จากผู้ป่วยก่อน','เก็บข้อมูลแต่ไม่บอกว่าเป็นงานวิจัย'],ic:['❌','✅','❌'],w:['❌ งานวิจัยที่ดีต้องมี ethical approval และ informed consent เสมอ','✅ Autonomy และ PDPA กำหนดชัดว่าต้องมี consent ก่อนเสมอ','❌ การหลอกผู้ป่วยยิ่งแย่กว่า'],l:['PDPA พ.ร.บ.คุ้มครองข้อมูลส่วนบุคคล 2562','มาตรฐานจริยธรรมการวิจัย — Informed Consent','การอนุมัติจาก IRB (Institutional Review Board)'],r:['🚫 ปฏิเสธการเก็บข้อมูลโดยไม่มี consent','📢 แจ้งอาจารย์เรื่องข้อกำหนดจริยธรรมการวิจัย','📋 ขอผ่านกระบวนการ IRB ที่ถูกต้อง'],qq:'งานวิจัยที่เกี่ยวข้องกับผู้ป่วยต้องมีอะไรก่อนเสมอ?',qo:['การอนุญาตจากอาจารย์ที่ปรึกษา','Informed consent จากผู้ป่วย + IRB approval','เพียงแค่จุดมุ่งหมายที่ดี'],qc:1},
+   en:{e:'🔬',t:'Student and Research Ethics',s:'A professor asks you as student to collect patient data for research without informing patients because it takes too much time.',c:['Follow the professor — it is research','Refuse — must obtain patient consent first','Collect data but do not call it research'],ic:['❌','✅','❌'],w:['❌ Good research always requires ethical approval and informed consent.','✅ Autonomy and PDPA clearly require consent before any data collection.','❌ Deceiving patients is even worse.'],l:['PDPA — Personal Data Protection Act 2019','Research Ethics — Informed Consent requirement','IRB Institutional Review Board approval'],r:['🚫 Refuse to collect data without consent','📢 Inform professor about research ethics requirements','📋 Request proper IRB process'],qq:'Research involving patients always requires what first?',qo:['Supervisor approval','Informed consent from patients + IRB approval','Good intentions alone'],qc:1}},
+  {id:30,cat:'clinical',correct:1,scores:[0,10,3],
+   cn:{th:'⚡ Beneficence ✔ ปะทะ Autonomy (ผู้ป่วยปฏิเสธยา) — ประเมินก่อน บังคับเป็นทางเลือกสุดท้าย',en:'⚡ Beneficence ✔ vs Autonomy (patient refuses medication) — assess first force is last resort'},
+   conflict:{au:[false,true,false],be:[false,true,true],nm:[false,true,false],ju:[true,true,true]},
+   th:{e:'🧠',t:'ผู้ป่วยจิตเวชไม่ให้ความร่วมมือ',s:'ผู้ป่วยจิตเวชปฏิเสธยาและตะโกนใส่คุณ คุณรู้สึกหงุดสะดุ้งและอยากตอบโต้',c:['ตอบโต้เพื่อให้ผู้ป่วยหยุด','สงบ เรียกทีมมาช่วย ไม่บังคับยา','บังคับให้ยาเพราะเป็นประโยชน์ต่อผู้ป่วย'],ic:['❌','✅','⚠️'],w:['❌ การตอบโต้เพิ่มความตึงเครียดและละเมิดหลัก Caring','✅ ความปลอดภัยและการเคารพสิทธิมาก่อน','⚠️ การบังคับยาต้องมีเหตุผลทางคลินิกและกระบวนการที่ถูกต้อง'],l:['หลัก Beneficence — ประโยชน์สูงสุดของผู้ป่วย','สิทธิผู้ป่วยจิตเวช พ.ร.บ.สุขภาพจิต 2551','หลัก Non-maleficence — ไม่ใช้ความรุนแรง'],r:['😌 ใช้เทคนิค de-escalation','👥 เรียกทีมมาสนับสนุน','📋 ประเมิน mental status อย่างละเอียด'],qq:'เมื่อผู้ป่วยจิตเวชปฏิเสธยา สิ่งแรกที่พยาบาลควรทำคืออะไร?',qo:['บังคับให้ยาทันที','ประเมินสถานการณ์และเรียกทีม','บันทึกว่าผู้ป่วยปฏิเสธและไม่ทำอะไร'],qc:1},
+   en:{e:'🧠',t:'Uncooperative Psychiatric Patient',s:'A psychiatric patient refuses medication and shouts at you. You feel frustrated and want to respond.',c:['Respond assertively to make them stop','Stay calm call the team do not force medication','Force medication because it benefits the patient'],ic:['❌','✅','⚠️'],w:['❌ Reacting escalates tension and violates the principle of Caring.','✅ Safety and respecting rights come first.','⚠️ Forced medication requires specific clinical justification and proper process.'],l:['Beneficence — patient best interest','Mental Health Act B.E. 2551 — patient rights','Non-maleficence — avoid use of force'],r:['😌 Use de-escalation techniques','👥 Call the team for support','📋 Assess mental status thoroughly'],qq:'When a psychiatric patient refuses medication the nurse first action is:',qo:['Force administer immediately','Assess situation and call the team','Document refusal and do nothing else'],qc:1}},
+];
+
+const today=new Date();
+const daySeed=(today.getFullYear()*1000+today.getMonth()*31+today.getDate())%SC.length;
+const dailySC=SC[daySeed];
+
+function setLang(l){
+  lang=l;
+  document.getElementById('btn-th').className='lbtn'+(l==='th'?' on':'');
+  document.getElementById('btn-en').className='lbtn'+(l==='en'?' on':'');
+  updateBotNavLabels();
+  renderCurrentTab();
+}
+function updateBotNavLabels(){
+  document.getElementById('bl-home').textContent=L('home');
+  document.getElementById('bl-daily').textContent=L('daily');
+  document.getElementById('bl-explore').textContent=L('explore');
+  document.getElementById('bl-dash').textContent=L('dash');
+}
+function switchTab(t,keepExpSc){
+  curTab=t;
+  ['home','daily','explore','dashboard'].forEach(id=>{
+    document.getElementById('bnav-'+id).classList.toggle('on',id===t);
+  });
+  if(t==='daily')renderDaily();
+  else if(t==='explore')renderExplore();
+  else if(t==='dashboard')renderDashboard();
+  else renderHome();
+  window.scrollTo(0,0);
+}
+function renderCurrentTab(){switchTab(curTab);}
+function setContent(html){document.getElementById('main-content').innerHTML=html;}
+
+function updateStats(){
+  const pct=Math.round(st.done/30*100);
+  const r=st.done>0?st.score/Math.max(st.done*10,1):0;
+  let badge,col;
+  if(st.done===0){badge='—';col='#888';}
+  else if(r>=0.8){badge='🟢 Ethical';col='#27500A';}
+  else if(r>=0.5){badge='🟡 Learning';col='#854F0B';}
+  else{badge='🔴 Risk';col:'#A32D2D';}
+}
+
+// ── HOME ──────────────────────────────────────────────────────────
+function renderHome(){
+  const done=st.done,score=st.score,streak=st.streak;
+  const pct=Math.round(done/30*100);
+  const r=done>0?score/Math.max(done*10,1):0;
+  let badge=done===0?'—':r>=0.8?'🟢 Ethical Nurse':r>=0.5?'🟡 Learning Nurse':'🔴 Risk Zone';
+
+  let recentHTML='';
+  const recent=SC.filter(s=>st.ids.has(s.id)).slice(-3).reverse();
+  if(recent.length>0){
+    recentHTML='<div class="section-title">'+L('recent')+'</div>'
+      +'<div class="recent-list">'+recent.map(s=>{const d=lang==='th'?s.th:s.en;return'<div class="recent-item" onclick="goToScenario('+s.id+')"><div class="ri-ico">'+d.e+'</div><div class="ri-ttl">'+d.t+'</div><span class="ri-cat" style="background:'+CAT[s.cat].bg+';color:'+CAT[s.cat].fg+'">'+(lang==='th'?CAT[s.cat].th:CAT[s.cat].en)+'</span><div class="ri-arr">›</div></div>';}).join('')+'</div>';
+  }
+
+  const html='<div class="home-hero">'
+    +'<div class="home-hero-title">EthiBot Nurse 🏥</div>'
+    +'<div class="home-hero-sub">'+L('hero_sub')+'</div>'
+    +'<div style="display:flex;gap:16px;margin-bottom:14px">'
+    +'<div><div style="font-size:22px;font-weight:700;color:#FCEBEB">'+score+'</div><div style="font-size:11px;opacity:.7">Score</div></div>'
+    +'<div><div style="font-size:22px;font-weight:700;color:#FCEBEB">'+done+'/30</div><div style="font-size:11px;opacity:.7">Done</div></div>'
+    +'<div><div style="font-size:22px;font-weight:700;color:#FCEBEB">'+streak+'🔥</div><div style="font-size:11px;opacity:.7">Streak</div></div>'
+    +'<div><div style="font-size:14px;font-weight:600;color:#FCEBEB;margin-top:3px">'+badge+'</div><div style="font-size:11px;opacity:.7">Badge</div></div>'
+    +'</div>'
+    +'<div style="background:rgba(255,255,255,.2);border-radius:999px;height:6px;margin-bottom:14px;overflow:hidden"><div style="width:'+pct+'%;height:6px;background:#FCEBEB;border-radius:999px;transition:width .5s"></div></div>'
+    +'<button class="home-cta" onclick="switchTab(\'daily\')">'+L('start_daily')+'</button></div>'
+    +'<div class="tip-card">'+L('tip')+'</div>'
+    +'<div class="section-title" style="margin-bottom:10px">'+L('browse')+'</div>'
+    +'<div class="cat-cards">'+Object.entries(CAT).map(([k,v])=>{
+      const cnt=SC.filter(s=>s.cat===k).length;
+      const doneCnt=SC.filter(s=>s.cat===k&&st.ids.has(s.id)).length;
+      return '<div class="cat-card" style="background:'+v.bg+';border-color:'+v.bg+'" onclick="browseCategory(\''+k+'\')">'
+        +'<div class="cat-ico">'+v.ico+'</div>'
+        +'<div><div class="cat-info-name" style="color:'+v.fg+'">'+(lang==='th'?v.th:v.en)+'</div>'
+        +'<div class="cat-info-count" style="color:'+v.fg+';opacity:.7">'+doneCnt+'/'+cnt+'</div></div></div>';
+    }).join('')+'</div>'
+    +recentHTML
+    +'<div class="safety">⚕ '+L('edu')+'</div>';
+  setContent(html);
+}
+function browseCategory(cat){expCat=cat;expSc=null;curTab='explore';['home','daily','explore','dashboard'].forEach(id=>document.getElementById('bnav-'+id).classList.toggle('on',id==='explore'));renderExplore();window.scrollTo(0,0);}
+function goToScenario(id){expSc=SC.find(s=>s.id===id);expStep=0;expPicked=null;curTab='explore';['home','daily','explore','dashboard'].forEach(id2=>document.getElementById('bnav-'+id2).classList.toggle('on',id2==='explore'));renderExplore();window.scrollTo(0,0);}
+
+// ── DAILY ──────────────────────────────────────────────────────────
+function renderDaily(){
+  if(dcStep===0)setContent(renderDC());
+  else if(dcStep===1)setContent(renderDCAnalysis());
+  else setContent(renderDCQuiz());
+  if(dcStep===0&&!dcDone)startTimer();
+}
+function renderDC(){
+  const s=dailySC,d=lang==='th'?s.th:s.en;
+  const now=new Date();
+  const dateStr=lang==='th'?now.getDate()+'/'+(now.getMonth()+1)+'/'+(now.getFullYear()+543):now.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  return '<div class="card"><div class="dc-hdr"><span style="font-size:22px">'+d.e+'</span>'
+    +'<div style="flex:1"><div style="font-size:16px;font-weight:600;color:#FCEBEB">🎯 Daily Challenge</div>'
+    +'<div style="font-size:12px;color:#F09595">'+dateStr+'</div></div>'
+    +'<span style="background:rgba(255,255,255,.15);border-radius:999px;padding:4px 10px;font-size:13px;color:#FCEBEB;font-weight:500">🔥 '+st.streak+'</span></div>'
+    +'<div class="timer-wrap"><div class="timer-ring" id="trw"><svg class="timer-svg" width="80" height="80" viewBox="0 0 80 80"><circle class="timer-track" cx="40" cy="40" r="35"/><circle class="timer-fill" id="tfill" cx="40" cy="40" r="35"/></svg><div class="timer-num" id="tnum">60</div></div>'
+    +'<div style="font-size:13px;color:var(--txt3)">'+L('sec_to_decide')+'</div></div>'
+    +'<div style="text-align:center;margin:4px 16px 8px"><span style="font-size:12px;padding:3px 10px;border-radius:999px;background:'+CAT[s.cat].bg+';color:'+CAT[s.cat].fg+'">'+(lang==='th'?CAT[s.cat].th:CAT[s.cat].en)+'</span></div>'
+    +'<div class="dc-sit">'+d.s+'</div>'
+    +'<div class="choices">'+d.c.map((c,i)=>'<button class="choice" id="dc'+i+'" onclick="pickDC('+i+')"><div class="ckey">'+['A','B','C'][i]+'</div><div class="ctxt">'+c+'</div><div class="cico">'+d.ic[i]+'</div></button>').join('')+'</div>'
+    +'</div>'
+    +'<div class="nav-row"><button class="nbtn skip" onclick="skipToExplore()">↷ '+L('skip')+'</button></div>'
+    +'<div class="safety">⚕ '+L('edu')+'</div>';
+}
+function skipToExplore(){stopTimer();switchTab('explore');}
+function startTimer(){
+  stopTimer();timerSec=60;updateTimerUI();
+  timerInt=setInterval(()=>{timerSec--;updateTimerUI();if(timerSec<=0){stopTimer();timeUp();}},1000);
+}
+function stopTimer(){clearInterval(timerInt);}
+function updateTimerUI(){
+  const f=document.getElementById('tfill'),n=document.getElementById('tnum'),w=document.getElementById('trw');
+  if(!f||!n)return;
+  f.style.strokeDashoffset=220*(1-timerSec/60);
+  n.textContent=timerSec;
+  if(timerSec<=10){f.style.stroke='#E24B4A';n.style.color='#E24B4A';if(w)w.classList.add('urgent');}
+  else if(timerSec<=20){f.style.stroke='#BA7517';n.style.color='#BA7517';}
+}
+function timeUp(){
+  document.querySelectorAll('[id^=dc]').forEach(b=>b.disabled=true);
+  setTimeout(()=>{dcStep=1;renderDaily();},1500);
+}
+function pickDC(idx){
+  if(dcDone)return;stopTimer();dcDone=true;dcPicked=idx;
+  const s=dailySC,pts=s.scores[idx],ok=idx===s.correct;
+  if(ok)st.streak++;else st.streak=0;
+  st.score+=pts;
+  if(!st.ids.has(s.id)){st.ids.add(s.id);st.done++;}
+  document.querySelectorAll('[id^=dc]').forEach((b,i)=>{
+    b.disabled=true;
+    if(i===s.correct)b.classList.add('correct');
+    else if(i===idx&&i!==s.correct)b.classList.add(pts>0?'partial':'wrong');
+  });
+  setTimeout(()=>{dcStep=1;renderDaily();},1200);
+}
+function renderDCAnalysis(){
+  const s=dailySC,d=lang==='th'?s.th:s.en,idx=dcPicked??s.correct;
+  return analysisHTML(s,d,idx,'dcStep=2;renderDaily()','dcStep=1;renderDaily()');
+}
+function renderDCQuiz(){
+  const s=dailySC,d=lang==='th'?s.th:s.en;
+  return '<div class="card">'+stepBar(3)+'<div class="quiz-wrap">'
+    +'<div style="font-size:11px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">🧩 Mini Quiz</div>'
+    +'<div class="quiz-q">'+d.qq+'</div>'
+    +'<div class="qopts">'+d.qo.map((o,i)=>'<button class="qopt" id="dq'+i+'" onclick="pickDCQ('+i+')">'+String.fromCharCode(65+i)+'. '+o+'</button>').join('')+'</div>'
+    +'<div id="dqfb"></div></div>'
+    +'<div class="nav-row">'
+    +'<button class="nbtn" onclick="dcDone=false;dcStep=0;dcPicked=null;renderDaily()">↺ '+L('retry')+'</button>'
+    +'<button class="nbtn primary" onclick="switchTab(\'explore\')">📚 '+L('explore')+' →</button></div></div>';
+}
+function pickDCQ(idx){
+  document.querySelectorAll('[id^=dq]').forEach(b=>b.disabled=true);
+  const d=lang==='th'?dailySC.th:dailySC.en,ok=idx===d.qc;
+  if(ok){st.score+=5;}
+  document.getElementById('dq'+idx).className='qopt '+(ok?'qok':'qfail');
+  if(!ok)document.getElementById('dq'+d.qc).className='qopt qok';
+  const fb=document.getElementById('dqfb');
+  if(fb){fb.className='quiz-fb';fb.textContent=ok?'✅ '+L('correct')+' +5pts':'❌ '+(lang==='th'?'คำตอบที่ถูก':'Correct')+': "'+d.qo[d.qc]+'"';}
+}
+
+// ── EXPLORE ───────────────────────────────────────────────────────
+function renderExplore(){
+  if(!expSc){renderExpMenu();return;}
+  if(expStep===0)setContent(renderExpSit());
+  else if(expStep===1)setContent(renderExpChoices());
+  else if(expStep===2)setContent(renderExpAnalysis());
+  else setContent(renderExpQuiz());
+}
+function renderExpMenu(){
+  const list=expCat==='all'?SC:SC.filter(s=>s.cat===expCat);
+  const cats=['all','clinical','digital','family','team','legal'];
+  setContent(
+    '<div class="cats">'+cats.map(c=>'<button class="ctab'+(expCat===c?' on':'')+'" onclick="setExpCat(\''+c+'\')">'+(c==='all'?L('all'):lang==='th'?CAT[c].th:CAT[c].en)+'</button>').join('')+'</div>'
+    +'<div class="srch-box"><span style="font-size:18px">🔍</span><input class="srch-inp" id="srch" placeholder="'+(lang==='th'?'ถาม EthiBot เช่น: โพสต์รูปผู้ป่วยได้ไหม?':'Ask EthiBot e.g.: Can I post patient photos?')+'" /></div>'
+    +'<div style="font-size:12px;color:var(--txt3);margin-bottom:10px;padding:0 2px">💡 '+list.length+(lang==='th'?' สถานการณ์':' scenarios')+'</div>'
+    +'<div class="mgrid" id="mgrid"></div>'
+    +'<button class="nbtn primary" style="width:100%;margin-bottom:10px" onclick="startRandom()">▶ '+L('random')+'</button>'
+  );
+  const g=document.getElementById('mgrid');
+  if(g){g.innerHTML=list.map(s=>{const d=lang==='th'?s.th:s.en;const done=st.ids.has(s.id);return '<div class="mc" onclick="pickExpSc('+s.id+')">'+(done?'<div class="mc-done">✓</div>':'')+'<div class="mc-num">#'+s.id+'</div><div class="mc-ico">'+d.e+'</div><div class="mc-ttl">'+d.t+'</div><span class="mc-cat" style="background:'+CAT[s.cat].bg+';color:'+CAT[s.cat].fg+'">'+(lang==='th'?CAT[s.cat].th:CAT[s.cat].en)+'</span></div>';}).join('');}
+  const si=document.getElementById('srch');
+  if(si){si.addEventListener('keydown',e=>{if(e.key==='Enter')doSearch(e.target.value);});si.addEventListener('input',e=>{if(e.target.value.length>2)doSearch(e.target.value);});}
+}
+function setExpCat(c){expCat=c;expSc=null;renderExplore();}
+function startRandom(){const pool=SC.filter(s=>!st.ids.has(s.id));pickExpSc((pool.length>0?pool:SC)[Math.floor(Math.random()*(pool.length||SC.length))].id);}
+function doSearch(q){
+  const l=q.toLowerCase();
+  const hit=SC.find(s=>{const d=lang==='th'?s.th:s.en;return d.t.toLowerCase().includes(l)||d.s.toLowerCase().includes(l)||s.cat.includes(l);});
+  if(hit)pickExpSc(hit.id);
+}
+function pickExpSc(id){expSc=SC.find(s=>s.id===id);expStep=0;expPicked=null;renderExplore();}
+function renderExpSit(){
+  const s=expSc,d=lang==='th'?s.th:s.en;
+  return '<div class="card">'+stepBar(0)+'<div style="padding:14px">'
+    +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><span style="font-size:26px">'+d.e+'</span><div><div style="font-size:17px;font-weight:600;color:var(--txt)">'+d.t+'</div><span style="font-size:11px;padding:2px 9px;border-radius:999px;background:'+CAT[s.cat].bg+';color:'+CAT[s.cat].fg+'">'+(lang==='th'?CAT[s.cat].th:CAT[s.cat].en)+'</span></div></div>'
+    +'<div class="sc-sit">'+d.s+'</div></div>'
+    +'<div class="nav-row">'
+    +'<button class="nbtn" onclick="expSc=null;renderExplore()">← '+L('back')+'</button>'
+    +'<button class="nbtn skip" onclick="startRandom()">↷ '+L('skip')+'</button>'
+    +'<button class="nbtn primary" onclick="expStep=1;renderExplore()">▶ '+L('decide')+'</button></div></div>';
+}
+function renderExpChoices(){
+  const s=expSc,d=lang==='th'?s.th:s.en;
+  return '<div class="card">'+stepBar(1)+'<div class="choices" style="padding-top:14px">'
+    +'<div style="font-size:14px;color:var(--txt2);font-weight:500;margin-bottom:6px">'+(lang==='th'?'คุณคิดว่าควรทำอย่างไร?':'What is the right action?')+'</div>'
+    +d.c.map((c,i)=>'<button class="choice" id="ec'+i+'" onclick="pickExp('+i+')"><div class="ckey">'+['A','B','C'][i]+'</div><div class="ctxt">'+c+'</div><div class="cico">'+d.ic[i]+'</div></button>').join('')
+    +'</div><div class="nav-row">'
+    +'<button class="nbtn" onclick="expStep=0;renderExplore()">← '+L('back')+'</button>'
+    +'<button class="nbtn skip" onclick="startRandom()">↷ '+L('skip')+'</button>'
+    +'</div></div>';
+}
+function pickExp(idx){
+  expPicked=idx;
+  const s=expSc,pts=s.scores[idx],ok=idx===s.correct;
+  if(ok)st.streak++;else st.streak=0;
+  st.score+=pts;
+  if(!st.ids.has(s.id)){st.ids.add(s.id);st.done++;}
+  document.querySelectorAll('[id^=ec]').forEach((b,i)=>{
+    b.disabled=true;
+    if(i===s.correct)b.classList.add('correct');
+    else if(i===idx&&i!==s.correct)b.classList.add(pts>0?'partial':'wrong');
+  });
+  setTimeout(()=>{expStep=2;renderExplore();},900);
+}
+function renderExpAnalysis(){
+  const s=expSc,d=lang==='th'?s.th:s.en,idx=expPicked??s.correct;
+  return analysisHTML(s,d,idx,'expStep=3;renderExplore()','expStep=1;renderExplore()');
+}
+function renderExpQuiz(){
+  const s=expSc,d=lang==='th'?s.th:s.en;
+  return '<div class="card">'+stepBar(3)+'<div class="quiz-wrap">'
+    +'<div style="font-size:11px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">🧩 Mini Quiz</div>'
+    +'<div class="quiz-q">'+d.qq+'</div>'
+    +'<div class="qopts">'+d.qo.map((o,i)=>'<button class="qopt" id="eq'+i+'" onclick="pickExpQ('+i+')">'+String.fromCharCode(65+i)+'. '+o+'</button>').join('')+'</div>'
+    +'<div id="eqfb"></div></div>'
+    +'<div class="nav-row">'
+    +'<button class="nbtn" onclick="expSc=null;renderExplore()">← '+L('menu')+'</button>'
+    +'<button class="nbtn skip" onclick="startRandom()">↷ '+L('skip')+'</button>'
+    +'<button class="nbtn primary" onclick="nextExp()">▶ '+L('next')+'</button></div></div>';
+}
+function pickExpQ(idx){
+  document.querySelectorAll('[id^=eq]').forEach(b=>b.disabled=true);
+  const d=lang==='th'?expSc.th:expSc.en,ok=idx===d.qc;
+  if(ok){st.score+=5;}
+  document.getElementById('eq'+idx).className='qopt '+(ok?'qok':'qfail');
+  if(!ok)document.getElementById('eq'+d.qc).className='qopt qok';
+  const fb=document.getElementById('eqfb');
+  if(fb){fb.className='quiz-fb';fb.textContent=ok?'✅ '+L('correct')+' +5pts':'❌ '+(lang==='th'?'คำตอบที่ถูก':'Correct')+': "'+d.qo[d.qc]+'"';}
+}
+function nextExp(){const pool=SC.filter(s=>!st.ids.has(s.id));if(pool.length>0)pickExpSc(pool[0].id);else{expSc=null;renderExplore();}}
+
+// ── SHARED HELPERS ─────────────────────────────────────────────────
+function stepBar(active){
+  const names=lang==='th'?['สถานการณ์','ตัดสินใจ','วิเคราะห์','Quiz']:['Scenario','Decision','Analysis','Quiz'];
+  return '<div class="steps">'+names.map((n,i)=>'<div class="step '+(i<active?'done':i===active?'active':'')+'"><div class="step-dot">'+(i<active?'✓':i+1)+'</div>'+n+'</div>').join('')+'</div>';
+}
+function principleChips(s,idx){
+  const p=s.conflict,pn=['Autonomy','Beneficence','Non-maleficence','Justice'],pk=['au','be','nm','ju'];
+  return pk.map((k,i)=>{
+    const val=p[k][idx],a=p[k],hasT=a.some(v=>v),hasF=a.some(v=>!v);
+    const cls=val?(hasT&&hasF?'conflict':'ok'):'fail';
+    const ic=cls==='ok'?'✅':cls==='conflict'?'⚠️':'❌';
+    const vd=cls==='ok'?L('uphold'):cls==='conflict'?L('conflict'):L('violated');
+    return '<div class="pchip '+cls+'"><span style="font-size:16px">'+ic+'</span><div><div class="pname">'+pn[i]+'</div><div class="pv">'+vd+'</div></div></div>';
+  }).join('');
+}
+function analysisHTML(s,d,idx,nextCmd,backCmd){
+  const pts=s.scores[idx],ok=idx===s.correct,partial=pts>0&&!ok;
+  const bn=ok?{bg:'#EAF3DE',ic:'✅',t:L('correct'),s:'+'+pts+'pts',c:'#27500A'}
+            :partial?{bg:'#FAEEDA',ic:'⚠️',t:L('partial'),s:'+'+pts+'pts',c:'#854F0B'}
+            :{bg:'#FCEBEB',ic:'❌',t:L('wrong'),s:'0pts',c:'#A32D2D'};
+  return '<div class="card">'+stepBar(2)+'<div class="analysis">'
+    +'<div class="result-banner" style="background:'+bn.bg+'">'
+    +'<div style="font-size:26px;flex-shrink:0">'+bn.ic+'</div>'
+    +'<div><div style="font-size:16px;font-weight:600;color:'+bn.c+'">'+bn.t+'</div>'
+    +'<div style="font-size:14px;color:'+bn.c+'">'+bn.s+'</div></div></div>'
+    +'<div><div class="slabel">💬 '+L('why')+'</div><div class="why-box">'+d.w[idx]+'</div></div>'
+    +'<div><div class="slabel">⚖️ Ethical Conflict Analysis</div><div class="pgrid">'+principleChips(s,idx)+'</div></div>'
+    +'<div class="cflict">'+s.cn[lang]+'</div>'
+    +'<div><div class="slabel">§ '+L('laws')+'</div><div class="law-box">'+d.l.map(x=>'<div class="law-row">'+x+'</div>').join('')+'</div></div>'
+    +'<div><div class="slabel">✅ Real Life</div><div class="real-box">'+d.r.map(r=>'<div class="real-item" onclick="this.querySelector(\'.chk\').classList.toggle(\'on\')"><div class="chk"></div>'+r+'</div>').join('')+'</div></div>'
+    +'</div>'
+    +'<div class="nav-row">'
+    +(backCmd?'<button class="nbtn" onclick="'+backCmd+'">← '+L('retry')+'</button>':'')
+    +'<button class="nbtn skip" onclick="startRandom();switchTab(\'explore\')">↷ '+L('skip')+'</button>'
+    +'<button class="nbtn primary" onclick="'+nextCmd+'">Quiz →</button></div></div>';
+}
+
+// ── DASHBOARD ──────────────────────────────────────────────────────
+function renderDashboard(){
+  const mockMissed=[
+    {l:lang==='th'?'โพสต์รูปผู้ป่วย':'Patient photo posting',w:82,c:'#BA7517'},
+    {l:lang==='th'?'Informed Consent':'Informed Consent',w:71,c:'#185FA5'},
+    {l:lang==='th'?'PDPA + วิจัย':'PDPA + Research',w:68,c:'#534AB7'},
+    {l:lang==='th'?'การุณยฆาต':'Euthanasia',w:61,c:'#534AB7'},
+    {l:lang==='th'?'ขัดแย้งแพทย์':'Doctor Conflict',w:54,c:'#A32D2D'},
+    {l:lang==='th'?'ข้อมูลครอบครัว':'Family Disclosure',w:42,c:'#3B6D11'},
+  ];
+  const avg=st.done>0?(st.score/st.done).toFixed(1):'7.2';
+  setContent(
+    '<div style="font-size:16px;font-weight:600;color:var(--txt);margin-bottom:10px;display:flex;align-items:center;gap:8px">📊 Analytics Dashboard'
+    +'<span style="font-size:11px;font-weight:400;color:var(--txt3);background:var(--bg2);padding:2px 8px;border-radius:999px">'+(lang==='th'?'ข้อมูลจำลอง':'Mock data')+'</span></div>'
+    +'<div class="kpi-g">'
+    +'<div class="kpi"><div class="kpi-n" style="color:#A32D2D">'+(st.done>0?st.done:24)+'</div><div class="kpi-l">'+(lang==='th'?'Scenarios ทำแล้ว':'Scenarios Done')+'</div></div>'
+    +'<div class="kpi"><div class="kpi-n" style="color:#185FA5">'+(st.done>0?avg:'7.2')+'</div><div class="kpi-l">'+(lang==='th'?'คะแนนเฉลี่ย':'Avg Score')+'</div></div>'
+    +'<div class="kpi"><div class="kpi-n" style="color:#854F0B">68%</div><div class="kpi-l">'+(lang==='th'?'ตอบผิดครั้งแรก':'Wrong 1st Try')+'</div></div></div>'
+    +'<div style="font-size:14px;font-weight:500;color:var(--txt2);margin-bottom:8px">⚠️ '+L('most_missed')+'</div>'
+    +'<div class="bar-chart">'+mockMissed.map(d=>'<div class="bar-row"><div class="bar-lbl">'+d.l+'</div><div class="bar-bg"><div class="bar-fill" style="width:'+d.w+'%;background:'+d.c+'"></div></div><div class="bar-pct">'+d.w+'%</div></div>').join('')+'</div>'
+    +'<div class="ins-card" style="background:#FCEBEB;border:0.5px solid #F09595"><span style="font-size:18px;flex-shrink:0">🚨</span><span style="font-size:14px;color:#A32D2D;line-height:1.65">'+(lang==='th'?'<strong>82%</strong> ตอบผิด scenario โพสต์รูปผู้ป่วย — Digital Fidelity ช่องว่างใหญ่ที่สุด':'<strong>82%</strong> wrong on patient photo posting — Digital Fidelity is the biggest gap.')+'</span></div>'
+    +'<div class="ins-card" style="background:#FAEEDA;border:0.5px solid #EF9F27"><span style="font-size:18px;flex-shrink:0">📈</span><span style="font-size:14px;color:#633806;line-height:1.65">'+(lang==='th'?'หลังใช้ EthiBot 2 สัปดาห์: คะแนนเฉลี่ยเพิ่มขึ้น <strong>23%</strong> จาก 6.1 → 7.5':'After 2 weeks: avg score increased <strong>23%</strong> from 6.1 → 7.5')+'</span></div>'
+    +'<div style="font-size:14px;font-weight:500;color:var(--txt2);margin-bottom:8px">🏅 Badge Distribution</div>'
+    +'<div class="badge-row">'
+    +'<div class="badge-card" style="background:#EAF3DE"><div style="font-size:20px">🟢</div><div style="font-size:14px;font-weight:500;color:#27500A">Ethical Nurse</div><div style="font-size:11px;color:#3B6D11">18 '+L('users')+'</div></div>'
+    +'<div class="badge-card" style="background:#FAEEDA"><div style="font-size:20px">🟡</div><div style="font-size:14px;font-weight:500;color:#854F0B">Learning</div><div style="font-size:11px;color:#BA7517">45 '+L('users')+'</div></div>'
+    +'<div class="badge-card" style="background:#FCEBEB"><div style="font-size:20px">🔴</div><div style="font-size:14px;font-weight:500;color:#A32D2D">Risk Zone</div><div style="font-size:11px;color:#E24B4A">17 '+L('users')+'</div></div></div>'
+    +'<div style="background:var(--bg2);border-radius:10px;padding:10px 12px;font-size:11px;color:var(--txt3);line-height:1.6">📌 '+L('mock')+'</div>'
+  );
+}
+
+renderHome();
+</script>
+</body>
+</html>
