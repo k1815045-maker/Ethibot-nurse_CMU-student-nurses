@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -214,6 +215,55 @@ let timerInt=null, timerSec=60, dcPicked=null, dcDone=false, dcStep=0;
 let expCat='all', expSc=null, expStep=0, expPicked=null;
 const st={score:0,done:0,streak:0,ids:new Set()};
 
+// ══════════════════════════════════════════════════════════════════
+// BACKEND CONFIG — วาง Web App URL ที่ได้จาก Google Apps Script ตรงนี้
+// (ดูวิธี deploy ในไฟล์ Code.gs ที่มาคู่กัน) ต้องลงท้ายด้วย /exec
+// ══════════════════════════════════════════════════════════════════
+const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbxo1LKfPPy-xj1U09W29fJQaI9M_IiCLijA2RpsAiYIzhzL9qWo8Gn1z9RRGVrIXXk9/exec';
+
+// ── รหัสอ้างอิงนักศึกษา (ใช้จับคู่กับ Pre/Post-test และรวมข้อมูลเป็นรายคน) ──
+function getStudentCode(){
+  let code=localStorage.getItem('ethibot_code');
+  if(!code){
+    code=(prompt(lang==='th'
+      ?'กรุณากรอกรหัสอ้างอิงนักศึกษา (รหัสเดียวกับที่ใช้ตอนทำ Pre-Test)\nรหัสนี้จะถูกจดจำไว้ในเครื่องนี้':
+      'Please enter your student reference code (same one used in the Pre-Test)\nThis will be remembered on this device')||'').trim();
+    if(!code)code='anon-'+Math.random().toString(36).slice(2,8);
+    localStorage.setItem('ethibot_code',code);
+  }
+  return code;
+}
+
+// ── บันทึกความคืบหน้าไว้ในเครื่องนี้ (กันรีเซ็ตเมื่อ refresh) ──
+function saveLocalState(){
+  try{
+    localStorage.setItem('ethibot_state',JSON.stringify({score:st.score,done:st.done,streak:st.streak,ids:Array.from(st.ids)}));
+  }catch(e){}
+}
+function loadLocalState(){
+  try{
+    const raw=localStorage.getItem('ethibot_state');
+    if(!raw)return;
+    const d=JSON.parse(raw);
+    st.score=d.score||0;st.done=d.done||0;st.streak=d.streak||0;
+    st.ids=new Set(d.ids||[]);
+  }catch(e){}
+}
+loadLocalState();
+
+// ── ส่งข้อมูลการตอบแต่ละครั้งไปเก็บที่ Google Sheets (fire-and-forget) ──
+function logAttempt(scenarioId,cat,correct,pts,mode){
+  saveLocalState();
+  if(!WEBAPP_URL||WEBAPP_URL.indexOf('PASTE_YOUR')===0)return; // ยังไม่ได้ตั้งค่า backend
+  try{
+    fetch(WEBAPP_URL,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'}, // ใช้ text/plain เพื่อเลี่ยง CORS preflight
+      body:JSON.stringify({code:getStudentCode(),id:scenarioId,cat:cat,mode:mode,correct:!!correct,pts:pts,ts:Date.now()})
+    }).catch(()=>{/* เงียบไว้ถ้าออฟไลน์ ไม่ให้กระทบการเล่น */});
+  }catch(e){}
+}
+
 const LABELS={
   th:{home:'หน้าหลัก',daily:'Daily',explore:'Explore',dash:'Dashboard',
       sec_to_decide:'วินาทีในการตัดสินใจ',why:'ทำไม',laws:'กฎหมาย',
@@ -225,7 +275,11 @@ const LABELS={
       most_missed:'Scenarios ที่ตอบผิดมากที่สุด',mock:'ข้อมูลจำลองสำหรับการแสดงตัวอย่างระบบ',
       users:'คน',hero_sub:'ฝึกตัดสินใจทางจริยธรรม ผ่าน 30 สถานการณ์จริง',
       start_daily:'▶ เริ่ม Daily Challenge',browse:'เลือก Scenario ตามหมวด',
-      recent:'Scenarios ล่าสุด',uphold:'ผ่าน',conflict:'ขัดแย้ง',violated:'บกพร่อง'},
+      recent:'Scenarios ล่าสุด',uphold:'ผ่าน',conflict:'ขัดแย้ง',violated:'บกพร่อง',
+      dash_loading:'กำลังโหลดข้อมูลจริงจากทั้งห้อง...',
+      dash_nodata:'ยังไม่มีข้อมูลการใช้งาน — เริ่มทำ Daily Challenge หรือ Explore เพื่อให้ Dashboard เริ่มแสดงสถิติจริง',
+      dash_error:'ไม่สามารถโหลดข้อมูลได้ ตรวจสอบการเชื่อมต่อ Backend (WEBAPP_URL)',
+      dash_live:'ข้อมูลจริงจากทั้งห้อง',students:'นักศึกษา',attempts:'ครั้งที่ตอบทั้งหมด'},
   en:{home:'Home',daily:'Daily',explore:'Explore',dash:'Dashboard',
       sec_to_decide:'seconds to decide',why:'Why',laws:'Laws',
       correct:'Correct!',partial:'Partial',wrong:'Incorrect',
@@ -236,7 +290,11 @@ const LABELS={
       most_missed:'Most Missed Scenarios',mock:'Mock data for system demonstration',
       users:'users',hero_sub:'Practice ethical decision-making through 30 real scenarios',
       start_daily:'▶ Start Daily Challenge',browse:'Browse by Category',
-      recent:'Recent Scenarios',uphold:'Upheld',conflict:'Conflict',violated:'Violated'}
+      recent:'Recent Scenarios',uphold:'Upheld',conflict:'Conflict',violated:'Violated',
+      dash_loading:'Loading real class-wide data...',
+      dash_nodata:'No usage data yet — start a Daily Challenge or Explore session to populate the Dashboard.',
+      dash_error:'Could not load data. Check the backend connection (WEBAPP_URL).',
+      dash_live:'Live data from the whole class',students:'students',attempts:'total attempts'}
 };
 function L(k){return LABELS[lang][k]||k;}
 
@@ -531,6 +589,7 @@ function pickDC(idx){
   if(ok)st.streak++;else st.streak=0;
   st.score+=pts;
   if(!st.ids.has(s.id)){st.ids.add(s.id);st.done++;}
+  logAttempt(s.id,s.cat,ok,pts,'daily');
   document.querySelectorAll('[id^=dc]').forEach((b,i)=>{
     b.disabled=true;
     if(i===s.correct)b.classList.add('correct');
@@ -620,6 +679,7 @@ function pickExp(idx){
   if(ok)st.streak++;else st.streak=0;
   st.score+=pts;
   if(!st.ids.has(s.id)){st.ids.add(s.id);st.done++;}
+  logAttempt(s.id,s.cat,ok,pts,'explore');
   document.querySelectorAll('[id^=ec]').forEach((b,i)=>{
     b.disabled=true;
     if(i===s.correct)b.classList.add('correct');
@@ -691,34 +751,78 @@ function analysisHTML(s,d,idx,nextCmd,backCmd){
     +'<button class="nbtn primary" onclick="'+nextCmd+'">Quiz →</button></div></div>';
 }
 
-// ── DASHBOARD ──────────────────────────────────────────────────────
+// ── DASHBOARD (ข้อมูลจริงจาก Google Sheets ผ่าน Apps Script) ─────────
+function scenarioTitle_(id){
+  const s=SC.find(x=>x.id===id);
+  if(!s)return '#'+id;
+  const d=lang==='th'?s.th:s.en;
+  return d.t;
+}
 function renderDashboard(){
-  const mockMissed=[
-    {l:lang==='th'?'โพสต์รูปผู้ป่วย':'Patient photo posting',w:82,c:'#BA7517'},
-    {l:lang==='th'?'Informed Consent':'Informed Consent',w:71,c:'#185FA5'},
-    {l:lang==='th'?'PDPA + วิจัย':'PDPA + Research',w:68,c:'#534AB7'},
-    {l:lang==='th'?'การุณยฆาต':'Euthanasia',w:61,c:'#534AB7'},
-    {l:lang==='th'?'ขัดแย้งแพทย์':'Doctor Conflict',w:54,c:'#A32D2D'},
-    {l:lang==='th'?'ข้อมูลครอบครัว':'Family Disclosure',w:42,c:'#3B6D11'},
-  ];
-  const avg=st.done>0?(st.score/st.done).toFixed(1):'7.2';
+  setContent(
+    '<div style="font-size:16px;font-weight:600;color:var(--txt);margin-bottom:10px;display:flex;align-items:center;gap:8px">📊 Analytics Dashboard</div>'
+    +'<div style="padding:30px 10px;text-align:center;color:var(--txt3);font-size:13px">⏳ '+L('dash_loading')+'</div>'
+  );
+
+  if(!WEBAPP_URL||WEBAPP_URL.indexOf('PASTE_YOUR')===0){
+    setContent(
+      '<div style="font-size:16px;font-weight:600;color:var(--txt);margin-bottom:10px;display:flex;align-items:center;gap:8px">📊 Analytics Dashboard</div>'
+      +'<div class="ins-card" style="background:#FCEBEB;border:0.5px solid #F09595"><span style="font-size:18px;flex-shrink:0">⚠️</span><span style="font-size:14px;color:#A32D2D;line-height:1.65">'+L('dash_error')+' (WEBAPP_URL ยังไม่ได้ตั้งค่าในโค้ด)</span></div>'
+    );
+    return;
+  }
+
+  fetch(WEBAPP_URL)
+    .then(r=>r.json())
+    .then(data=>{
+      if(curTab!=='dashboard')return; // ผู้ใช้เปลี่ยนแท็บไปแล้วระหว่างรอโหลด
+      if(!data.ok){renderDashError();return;}
+      if(!data.hasData){renderDashEmpty();return;}
+      renderDashReal(data);
+    })
+    .catch(()=>{ if(curTab==='dashboard')renderDashError(); });
+}
+function renderDashError(){
+  setContent(
+    '<div style="font-size:16px;font-weight:600;color:var(--txt);margin-bottom:10px;display:flex;align-items:center;gap:8px">📊 Analytics Dashboard</div>'
+    +'<div class="ins-card" style="background:#FCEBEB;border:0.5px solid #F09595"><span style="font-size:18px;flex-shrink:0">⚠️</span><span style="font-size:14px;color:#A32D2D;line-height:1.65">'+L('dash_error')+'</span></div>'
+    +'<div class="nav-row"><button class="nbtn primary" onclick="renderDashboard()">↺ '+(lang==='th'?'ลองใหม่':'Retry')+'</button></div>'
+  );
+}
+function renderDashEmpty(){
+  setContent(
+    '<div style="font-size:16px;font-weight:600;color:var(--txt);margin-bottom:10px;display:flex;align-items:center;gap:8px">📊 Analytics Dashboard</div>'
+    +'<div class="ins-card" style="background:#EAF3DE;border:0.5px solid #B8D9A0"><span style="font-size:18px;flex-shrink:0">📭</span><span style="font-size:14px;color:#27500A;line-height:1.65">'+L('dash_nodata')+'</span></div>'
+  );
+}
+function renderDashReal(data){
+  const missedRows=(data.mostMissed||[]).map(m=>{
+    const cInfo=CAT[m.cat]||{fg:'#666'};
+    return '<div class="bar-row"><div class="bar-lbl">'+scenarioTitle_(m.id)+'</div><div class="bar-bg"><div class="bar-fill" style="width:'+m.wrongPct+'%;background:'+cInfo.fg+'"></div></div><div class="bar-pct">'+m.wrongPct+'%</div></div>';
+  }).join('') || '<div style="font-size:12px;color:var(--txt3)">'+(lang==='th'?'ยังไม่มีข้อมูลเพียงพอ':'Not enough data yet')+'</div>';
+
+  const topMissed=(data.mostMissed&&data.mostMissed[0])?data.mostMissed[0]:null;
+  const insightCard=topMissed
+    ? '<div class="ins-card" style="background:#FCEBEB;border:0.5px solid #F09595"><span style="font-size:18px;flex-shrink:0">🚨</span><span style="font-size:14px;color:#A32D2D;line-height:1.65"><strong>'+topMissed.wrongPct+'%</strong> '+(lang==='th'?'ตอบผิด scenario':'wrong on scenario')+' "'+scenarioTitle_(topMissed.id)+'"</span></div>'
+    : '';
+
   setContent(
     '<div style="font-size:16px;font-weight:600;color:var(--txt);margin-bottom:10px;display:flex;align-items:center;gap:8px">📊 Analytics Dashboard'
-    +'<span style="font-size:11px;font-weight:400;color:var(--txt3);background:var(--bg2);padding:2px 8px;border-radius:999px">'+(lang==='th'?'ข้อมูลจำลอง':'Mock data')+'</span></div>'
+    +'<span style="font-size:11px;font-weight:400;color:#27500A;background:#EAF3DE;padding:2px 8px;border-radius:999px">🟢 '+L('dash_live')+'</span></div>'
     +'<div class="kpi-g">'
-    +'<div class="kpi"><div class="kpi-n" style="color:#A32D2D">'+(st.done>0?st.done:24)+'</div><div class="kpi-l">'+(lang==='th'?'Scenarios ทำแล้ว':'Scenarios Done')+'</div></div>'
-    +'<div class="kpi"><div class="kpi-n" style="color:#185FA5">'+(st.done>0?avg:'7.2')+'</div><div class="kpi-l">'+(lang==='th'?'คะแนนเฉลี่ย':'Avg Score')+'</div></div>'
-    +'<div class="kpi"><div class="kpi-n" style="color:#854F0B">68%</div><div class="kpi-l">'+(lang==='th'?'ตอบผิดครั้งแรก':'Wrong 1st Try')+'</div></div></div>'
+    +'<div class="kpi"><div class="kpi-n" style="color:#A32D2D">'+data.scenariosDone+'</div><div class="kpi-l">'+(lang==='th'?'Scenarios ทำแล้ว':'Scenarios Done')+'</div></div>'
+    +'<div class="kpi"><div class="kpi-n" style="color:#185FA5">'+data.avgScore+'</div><div class="kpi-l">'+(lang==='th'?'คะแนนเฉลี่ย':'Avg Score')+'</div></div>'
+    +'<div class="kpi"><div class="kpi-n" style="color:#854F0B">'+data.wrongFirstTryPct+'%</div><div class="kpi-l">'+(lang==='th'?'ตอบผิดครั้งแรก':'Wrong 1st Try')+'</div></div></div>'
+    +'<div style="font-size:12px;color:var(--txt3);margin-bottom:14px">👥 '+data.uniqueStudents+' '+L('students')+' · 📝 '+data.totalAttempts+' '+L('attempts')+'</div>'
     +'<div style="font-size:14px;font-weight:500;color:var(--txt2);margin-bottom:8px">⚠️ '+L('most_missed')+'</div>'
-    +'<div class="bar-chart">'+mockMissed.map(d=>'<div class="bar-row"><div class="bar-lbl">'+d.l+'</div><div class="bar-bg"><div class="bar-fill" style="width:'+d.w+'%;background:'+d.c+'"></div></div><div class="bar-pct">'+d.w+'%</div></div>').join('')+'</div>'
-    +'<div class="ins-card" style="background:#FCEBEB;border:0.5px solid #F09595"><span style="font-size:18px;flex-shrink:0">🚨</span><span style="font-size:14px;color:#A32D2D;line-height:1.65">'+(lang==='th'?'<strong>82%</strong> ตอบผิด scenario โพสต์รูปผู้ป่วย — Digital Fidelity ช่องว่างใหญ่ที่สุด':'<strong>82%</strong> wrong on patient photo posting — Digital Fidelity is the biggest gap.')+'</span></div>'
-    +'<div class="ins-card" style="background:#FAEEDA;border:0.5px solid #EF9F27"><span style="font-size:18px;flex-shrink:0">📈</span><span style="font-size:14px;color:#633806;line-height:1.65">'+(lang==='th'?'หลังใช้ EthiBot 2 สัปดาห์: คะแนนเฉลี่ยเพิ่มขึ้น <strong>23%</strong> จาก 6.1 → 7.5':'After 2 weeks: avg score increased <strong>23%</strong> from 6.1 → 7.5')+'</span></div>'
+    +'<div class="bar-chart">'+missedRows+'</div>'
+    +insightCard
     +'<div style="font-size:14px;font-weight:500;color:var(--txt2);margin-bottom:8px">🏅 Badge Distribution</div>'
     +'<div class="badge-row">'
-    +'<div class="badge-card" style="background:#EAF3DE"><div style="font-size:20px">🟢</div><div style="font-size:14px;font-weight:500;color:#27500A">Ethical Nurse</div><div style="font-size:11px;color:#3B6D11">18 '+L('users')+'</div></div>'
-    +'<div class="badge-card" style="background:#FAEEDA"><div style="font-size:20px">🟡</div><div style="font-size:14px;font-weight:500;color:#854F0B">Learning</div><div style="font-size:11px;color:#BA7517">45 '+L('users')+'</div></div>'
-    +'<div class="badge-card" style="background:#FCEBEB"><div style="font-size:20px">🔴</div><div style="font-size:14px;font-weight:500;color:#A32D2D">Risk Zone</div><div style="font-size:11px;color:#E24B4A">17 '+L('users')+'</div></div></div>'
-    +'<div style="background:var(--bg2);border-radius:10px;padding:10px 12px;font-size:11px;color:var(--txt3);line-height:1.6">📌 '+L('mock')+'</div>'
+    +'<div class="badge-card" style="background:#EAF3DE"><div style="font-size:20px">🟢</div><div style="font-size:14px;font-weight:500;color:#27500A">Ethical Nurse</div><div style="font-size:11px;color:#3B6D11">'+data.badges.green+' '+L('users')+'</div></div>'
+    +'<div class="badge-card" style="background:#FAEEDA"><div style="font-size:20px">🟡</div><div style="font-size:14px;font-weight:500;color:#854F0B">Learning</div><div style="font-size:11px;color:#BA7517">'+data.badges.yellow+' '+L('users')+'</div></div>'
+    +'<div class="badge-card" style="background:#FCEBEB"><div style="font-size:20px">🔴</div><div style="font-size:14px;font-weight:500;color:#A32D2D">Risk Zone</div><div style="font-size:11px;color:#E24B4A">'+data.badges.red+' '+L('users')+'</div></div></div>'
+    +'<div class="nav-row"><button class="nbtn" onclick="renderDashboard()">↺ '+(lang==='th'?'รีเฟรช':'Refresh')+'</button></div>'
   );
 }
 
